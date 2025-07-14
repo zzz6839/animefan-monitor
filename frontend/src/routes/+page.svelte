@@ -2,8 +2,8 @@
   import { onMount } from 'svelte';
   import { Button, Checkbox, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
   import { PlusOutline, EditOutline, TrashOutline, RefreshOutline, CogOutline, PlayOutline } from 'flowbite-svelte-icons';
-  import type { DownloadRule, RSSFeedItem } from '$lib/types.ts';
-  import apiClient from '$lib/api.ts';
+  import type { DownloadRule, RSSFeedItem } from '$lib/types';
+  import apiClient from '$lib/api';
   import toast from 'svelte-french-toast';
   import dayjs from 'dayjs';
   import relativeTime from 'dayjs/plugin/relativeTime';
