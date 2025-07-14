@@ -3,9 +3,10 @@ FROM node:18-slim AS builder
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install && npm install axios @types/axios
+RUN npm ci
 
 COPY . .
+RUN npm run check
 RUN npm run build
 
 # Production stage
