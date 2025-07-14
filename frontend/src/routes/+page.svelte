@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Button, Checkbox, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
-  import { PlusOutline, EditOutline, TrashOutline, RefreshOutline, CogOutline, PlayOutline } from 'flowbite-svelte-icons';
+  import { PlusOutline, EditOutline, TrashBinOutline, RefreshOutline, CogOutline, PlayOutline } from 'flowbite-svelte-icons';
   import type { DownloadRule, RSSFeedItem } from '$lib/types';
   import apiClient from '$lib/api';
   import toast from 'svelte-french-toast';
@@ -48,7 +48,7 @@
     <Button><PlayOutline class="w-5 h-5 mr-2" />运行规则</Button>
     <Button href="/rules/new"><PlusOutline class="w-5 h-5 mr-2" />新建自动下载规则</Button>
     <Button color="light" on:click={() => selectedRule && (window.location.href = `/rules/${selectedRule.id}`)} disabled={!selectedRule}><EditOutline class="w-5 h-5 mr-2" />编辑规则</Button>
-    <Button color="red" disabled={!selectedRule}><TrashOutline class="w-5 h-5 mr-2" />删除规则</Button>
+    <Button color="red" disabled={!selectedRule}><TrashBinOutline class="w-5 h-5 mr-2" />删除规则</Button>
     <Button href="/settings"><CogOutline class="w-5 h-5 mr-2" />下载器设置</Button>
     <Button color="light" on:click={fetchRules}><RefreshOutline class="w-5 h-5" /></Button>
   </div>
