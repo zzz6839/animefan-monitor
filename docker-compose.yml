@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    #build:
+    #  context: ./backend
+    #  dockerfile: Dockerfile
+    image: zzz6839/animefan-monitor-backend:latest
     ports:
       - "28000:8000"
     volumes:
@@ -16,9 +15,10 @@ services:
       - anime_network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    #build:
+    #  context: ./frontend
+    #  dockerfile: Dockerfile
+    image: zzz6839/animefan-monitor-frontend:latest
     ports:
       - "15173:80"
     environment:
