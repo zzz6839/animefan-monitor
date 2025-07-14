@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Button, Checkbox, Input, Label } from 'flowbite-svelte';
-  import type { Aria2Config } from '$lib/types';
-  import apiClient from '$lib/api';
+  import type { Aria2Config } from '$lib/types.ts';
+  import apiClient from '$lib/api.ts';
   import toast from 'svelte-french-toast';
 
   let config: Aria2Config = {

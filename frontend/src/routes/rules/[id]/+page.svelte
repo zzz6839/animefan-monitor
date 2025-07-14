@@ -3,8 +3,8 @@
   import { page } from '$app/stores';
   import { Button, Checkbox, Input, Textarea, Label } from 'flowbite-svelte';
   import { RefreshOutline } from 'flowbite-svelte-icons';
-  import type { DownloadRule, RSSFeedItem } from '$lib/types';
-  import apiClient from '$lib/api';
+  import type { DownloadRule, RSSFeedItem } from '$lib/types.ts';
+  import apiClient from '$lib/api.ts';
   import toast from 'svelte-french-toast';
   import dayjs from 'dayjs';
 
