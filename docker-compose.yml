@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "28000:8000"
+    volumes:
+      - anime_data:/data
+    environment:
+      - DEBUG=true
+    restart: unless-stopped
+    networks:
+      - anime_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "15173:80"
+    environment:
+      - API_URL=http://backend:8000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - anime_network
+
+volumes:
+  anime_data:
+
+networks:
+  anime_network:
+    driver: bridge
