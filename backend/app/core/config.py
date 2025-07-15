@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Anime Fan Monitor"
 
     # CORS settings
-    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:15173"]
 
     # RSS Feed settings
     DEFAULT_MONITOR_INTERVAL: int = 600  # 10 minutes in seconds

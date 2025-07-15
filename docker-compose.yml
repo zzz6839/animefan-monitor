@@ -10,6 +10,7 @@ services:
       - anime_data:/data
     environment:
       - DEBUG=true
+      - BACKEND_CORS_ORIGINS=["http://localhost:15173","http://localhost:5173","http://localhost:3000"]
     restart: unless-stopped
     networks:
       - anime_network
