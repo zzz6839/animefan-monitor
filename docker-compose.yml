@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    #build: ./backend
+    build: ./backend
     image: zzz6839/animefan-monitor-backend:latest
     ports:
       - "58000:58000"
