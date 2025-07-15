@@ -1,38 +1,23 @@
+version: '3.8'
+
 services:
   backend:
-    #build:
-    #  context: ./backend
-    #  dockerfile: Dockerfile
+    #build: ./backend
     image: zzz6839/animefan-monitor-backend:latest
     ports:
-      - "28000:8000"
+      - "58000:58000"
     volumes:
-      - anime_data:/data
-    environment:
-      - DEBUG=true
-      - BACKEND_CORS_ORIGINS=["http://localhost:15173","http://localhost:5173","http://localhost:3000"]
+      - ./backend_data:/app/data
     restart: unless-stopped
-    networks:
-      - anime_network
 
   frontend:
-    #build:
-    #  context: ./frontend
-    #  dockerfile: Dockerfile
+    #build: ./frontend
     image: zzz6839/animefan-monitor-frontend:latest
     ports:
-      - "15173:80"
-    environment:
-      - API_URL=http://backend:8000
-    restart: unless-stopped
+      - "53000:53000"
     depends_on:
       - backend
-    networks:
-      - anime_network
+    restart: unless-stopped
 
 volumes:
-  anime_data:
-
-networks:
-  anime_network:
-    driver: bridge
+  backend_data:

@@ -1,137 +1,93 @@
-# Anime Fan Monitor | 动漫迷监控器
+# Auto Download
 
-[English](#english) | [中文](#chinese)
+**Disclaimer:** This project was generated with the assistance of an AI programming assistant. While the code has been reviewed, it is provided as-is and may contain errors or inconsistencies.
 
----
+This is an interactive anime auto download monitor to schedule monitor feed, send new task via RPC to remote downloader once rss feed updated.
 
-<a name="english"></a>
-## English
+## Deployment
 
-Anime Fan Monitor is a web-based tool that helps you automatically monitor and download anime through RSS feeds using a remote Aria2 downloader. It provides a user-friendly interface to manage download rules and monitor download progress.
+The recommended way to deploy this application is with Docker Compose.
 
-### Features
+1.  Clone this repository.
+2.  Create a `docker-compose.yml` file with the following content:
 
-- 🔄 Automatic RSS feed monitoring
-- 📺 Filter downloads by subtitle groups
-- ⚡ Send download tasks to remote Aria2 server
-- 🕒 Customizable monitoring intervals
-- 🛠️ Easy configuration through web UI
-- 🐳 Simple deployment with Docker
+```yaml
+version: '3.8'
 
-### Prerequisites
+services:
+  backend:
+    image: your-dockerhub-username/auto-download-backend:main
+    ports:
+      - "58000:58000"
+    volumes:
+      - ./backend_data:/app/data
+    restart: unless-stopped
 
-- Docker and Docker Compose installed on your system
-- A remote Aria2 server with RPC enabled
-- Anime RSS feed URLs
+  frontend:
+    image: your-dockerhub-username/auto-download-frontend:main
+    ports:
+      - "53000:53000"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
-### Quick Start
+volumes:
+  backend_data:
+```
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/yourusername/animefan-monitor.git
-   cd animefan-monitor
-   ```
+3.  Replace `your-dockerhub-username` with your Docker Hub username.
+4.  Run `docker-compose up -d` to start the application.
 
-2. Start the application:
-   ```bash
-   docker compose up -d
-   ```
+## Usage
 
-3. Open your browser and navigate to:
-   - Web Interface: `http://localhost:5173`
-   - API Documentation: `http://localhost:8000/docs`
-
-4. Configure your Aria2 downloader settings through the web interface by clicking the "Download Settings" button.
-
-### Usage
-
-1. **Configure Aria2:**
-   - Enter your remote Aria2 server details (host, port, RPC path)
-   - Set your secret token (if configured on Aria2)
-   - Test the connection
-
-2. **Create Download Rules:**
-   - Click "New Automated Download Rule"
-   - Enter RSS feed URL
-   - Configure filters (subtitle groups, file size, etc.)
-   - Save the rule
-
-3. **Monitor Downloads:**
-   - Enable/disable rules from the main dashboard
-   - View download progress
-   - Preview available items from RSS feeds
+1.  Open your web browser and navigate to `http://localhost:53000`.
+2.  The first time you run the application, you will need to configure your Aria2 downloader settings. Click on the "下载器设置" (Downloader Settings) button to open the configuration modal.
+3.  Once you have configured your downloader, you can create new automated download rules by clicking on the "新建自动下载规则" (New Automated Download Rule) button.
 
 ---
 
-<a name="chinese"></a>
-## 中文
+# 自动下载
 
-动漫迷监控器是一个基于Web的工具，通过RSS订阅源和远程Aria2下载器帮助您自动监控和下载动漫。它提供了一个用户友好的界面来管理下载规则和监控下载进度。
+**免责声明:** 本项目由 AI 编程助手协助生成。虽然代码已经过审查，但仍按原样提供，可能包含错误或不一致之处。
 
-### 功能特点
+这是一个交互式的动漫自动下载监视器，用于安排监视 RSS 源，并在 RSS 源更新后通过 RPC 将新任务发送到远程下载器。
 
-- 🔄 自动RSS订阅源监控
-- 📺 字幕组过滤下载
-- ⚡ 发送下载任务至远程Aria2服务器
-- 🕒 可自定义监控时间间隔
-- 🛠️ 通过网页界面轻松配置
-- 🐳 使用Docker简单部署
+## 部署
 
-### 系统要求
+推荐使用 Docker Compose 部署此应用程序。
 
-- 系统已安装Docker和Docker Compose
-- 已启用RPC的远程Aria2服务器
-- 动漫RSS订阅源URL
+1.  克隆此存储库。
+2.  创建一个 `docker-compose.yml` 文件，内容如下：
 
-### 快速开始
+```yaml
+version: '3.8'
 
-1. 克隆此仓库：
-   ```bash
-   git clone https://github.com/yourusername/animefan-monitor.git
-   cd animefan-monitor
-   ```
+services:
+  backend:
+    image: your-dockerhub-username/auto-download-backend:main
+    ports:
+      - "58000:58000"
+    volumes:
+      - ./backend_data:/app/data
+    restart: unless-stopped
 
-2. 启动应用：
-   ```bash
-   docker compose up -d
-   ```
+  frontend:
+    image: your-dockerhub-username/auto-download-frontend:main
+    ports:
+      - "53000:53000"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
-3. 打开浏览器访问：
-   - 网页界面：`http://localhost:5173`
-   - API文档：`http://localhost:8000/docs`
+volumes:
+  backend_data:
+```
 
-4. 通过点击"下载器设置"按钮配置您的Aria2下载器设置。
+3.  将 `your-dockerhub-username` 替换为您的 Docker Hub 用户名。
+4.  运行 `docker-compose up -d` 启动应用程序。
 
-### 使用说明
+## 使用
 
-1. **配置Aria2：**
-   - 输入您的远程Aria2服务器详情（主机、端口、RPC路径）
-   - 设置密钥令牌（如果Aria2已配置）
-   - 测试连接
-
-2. **创建下载规则：**
-   - 点击"新建自动下载规则"
-   - 输入RSS订阅源URL
-   - 配置过滤器（字幕组、文件大小等）
-   - 保存规则
-
-3. **监控下载：**
-   - 在主面板启用/禁用规则
-   - 查看下载进度
-   - 预览RSS订阅源中的可用项目
-
-### AI免责声明 | AI Disclaimer
-
-This project was developed with the assistance of AI. While the core functionality and implementation were designed and reviewed by humans, some parts of the code, documentation, and configuration files were generated or enhanced using AI tools.
-
-此项目是在AI的协助下开发的。虽然核心功能和实现是由人类设计和审查的，但代码、文档和配置文件的某些部分是使用AI工具生成或增强的。
-
-### 许可证 | License
-
-MIT License - feel free to use this project for your personal or commercial purposes.
-
-MIT许可证 - 您可以自由地将此项目用于个人或商业用途。
-
-*注意：此项目仅用于教育目的。请遵守内容提供商的版权法和服务条款。*
-
-*Note: This project is for educational purposes only. Please respect copyright laws and terms of service of the content providers.*
+1.  打开您的网络浏览器并访问 `http://localhost:53000`。
+2.  首次运行该应用程序时，您需要配置您的 Aria2 下载器设置。点击“下载器设置”按钮打开配置模式窗口。
+3.  配置完下载器后，您可以点击“新建自动下载规则”按钮创建新的自动下载规则。

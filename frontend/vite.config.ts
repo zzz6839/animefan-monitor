@@ -1,16 +1,16 @@
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig({
-	plugins: [sveltekit()],
-	server: {
-		port: 5173,
-		strictPort: true,
-		proxy: {
-			'/api': {
-				target: 'http://localhost:8000',
-				changeOrigin: true,
-			},
-		},
-	},
-});
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://backend:58000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    }
+  }
+})
