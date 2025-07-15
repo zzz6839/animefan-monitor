@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { getApiBaseUrl } from './config';
 import type { DownloadRule, RSSFeedItem } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = getApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -24,6 +25,7 @@ export const rulesApi = {
 // RSS Feed API
 export const rssApi = {
   getItems: (ruleId: string) => apiClient.get<RSSFeedItem[]>(`/api/rss/${ruleId}/items`),
+  preview: (rss_url: string) => apiClient.post('/api/rss/preview', { rss_url }),
 };
 
 // Settings API

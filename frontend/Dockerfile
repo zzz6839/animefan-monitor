@@ -14,6 +14,9 @@ FROM nginx:alpine
 # Copy the built assets from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
+# Copy runtime configuration
+COPY runtime-config.js /usr/share/nginx/html/
+
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

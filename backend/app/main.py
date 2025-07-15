@@ -65,6 +65,50 @@ async def delete_rule(rule_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Rule not found")
     return {"status": "success"}
 
+# RSS Feed endpoints
+@app.post("/api/rss/preview")
+async def preview_rss_feed(rss_url: str):
+    """Preview RSS feed content for validation before creating rules."""
+    try:
+        import feedparser
+        from datetime import datetime
+        
+        feed = feedparser.parse(rss_url, timeout=30)
+        
+        if feed.bozo:
+            return {"success": False, "error": str(feed.bozo_exception)}
+        
+        if not feed.entries:
+            return {"success": False, "error": "No entries found in RSS feed"}
+        
+        # Extract basic feed info
+        feed_info = {
+            "title": feed.feed.get("title", "Unknown"),
+            "description": feed.feed.get("description", ""),
+            "link": feed.feed.get("link", ""),
+            "total_entries": len(feed.entries)
+        }
+        
+        # Extract sample entries
+        entries = []
+        for entry in feed.entries[:5]:  # Preview first 5 entries
+            entry_data = {
+                "title": entry.get("title", "No title"),
+                "link": entry.get("link", ""),
+                "published": entry.get("published", ""),
+                "description": entry.get("description", "")[:200] + "..." if entry.get("description") else ""
+            }
+            entries.append(entry_data)
+        
+        return {
+            "success": True,
+            "feed": feed_info,
+            "sample_entries": entries
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 # Aria2 Configuration endpoints
 @app.get("/api/aria2/config", response_model=Optional[schemas.Aria2Config])
 async def get_aria2_config(db: AsyncSession = Depends(get_db)):

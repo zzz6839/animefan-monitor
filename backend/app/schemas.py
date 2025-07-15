@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, AnyHttpUrl
 
 class Aria2ConfigBase(BaseModel):
     host: str
@@ -18,11 +18,11 @@ class Aria2Config(Aria2ConfigBase):
     last_updated: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class DownloadRuleBase(BaseModel):
     name: str
-    rss_url: HttpUrl
+    rss_url: AnyHttpUrl
     enabled: bool = True
     subtitle_group: str = "<全部>"
     max_tasks: int = 15
@@ -40,7 +40,7 @@ class DownloadRule(DownloadRuleBase):
     last_updated: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RSSFeedItem(BaseModel):
     title: str
