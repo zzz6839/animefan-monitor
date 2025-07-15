@@ -6,7 +6,11 @@ from . import models, schemas
 
 # Download Rules CRUD operations
 async def create_download_rule(db: Session, rule: schemas.DownloadRuleCreate) -> models.DownloadRule:
-    db_rule = models.DownloadRule(**rule.dict())
+    # Convert Pydantic URL to string for database storage
+    rule_dict = rule.dict()
+    rule_dict['rss_url'] = str(rule_dict['rss_url'])
+    
+    db_rule = models.DownloadRule(**rule_dict)
     db.add(db_rule)
     await db.commit()
     await db.refresh(db_rule)
@@ -28,7 +32,10 @@ async def update_download_rule(
 ) -> models.DownloadRule | None:
     db_rule = await get_download_rule(db, rule_id)
     if db_rule:
-        for key, value in rule.dict().items():
+        rule_dict = rule.dict()
+        rule_dict['rss_url'] = str(rule_dict['rss_url'])
+        
+        for key, value in rule_dict.items():
             setattr(db_rule, key, value)
         db_rule.last_updated = datetime.utcnow()
         await db.commit()
@@ -45,7 +52,8 @@ async def delete_download_rule(db: Session, rule_id: int) -> bool:
 
 # Aria2 Config CRUD operations
 async def get_aria2_config(db: Session) -> models.Aria2Config | None:
-    return await db.execute(select(models.Aria2Config)).scalar_one_or_none()
+    result = await db.execute(select(models.Aria2Config))
+    return result.scalar_one_or_none()
 
 async def create_or_update_aria2_config(
     db: Session, config: schemas.Aria2ConfigCreate

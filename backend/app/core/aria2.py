@@ -13,15 +13,11 @@ class Aria2Client:
     def connect(self, config: Aria2Config) -> bool:
         """Connect to Aria2 RPC server using provided configuration."""
         try:
-            protocol = "https" if config.use_ssl else "http"
-            rpc_url = f"{protocol}://{config.host}:{config.port}/{config.rpc_path}"
-            
             self._api = aria2p.API(
                 aria2p.Client(
                     host=config.host,
                     port=config.port,
-                    secret=config.secret_token,
-                    ssl=config.use_ssl
+                    secret=config.secret_token
                 )
             )
             

@@ -1,6 +1,7 @@
 import logging
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,14 +67,17 @@ async def delete_rule(rule_id: int, db: AsyncSession = Depends(get_db)):
     return {"status": "success"}
 
 # RSS Feed endpoints
+class RSSPreviewRequest(BaseModel):
+    rss_url: str
+
 @app.post("/api/rss/preview")
-async def preview_rss_feed(rss_url: str):
+async def preview_rss_feed(request: RSSPreviewRequest):
     """Preview RSS feed content for validation before creating rules."""
     try:
         import feedparser
         from datetime import datetime
         
-        feed = feedparser.parse(rss_url, timeout=30)
+        feed = feedparser.parse(request.rss_url, timeout=30)
         
         if feed.bozo:
             return {"success": False, "error": str(feed.bozo_exception)}
