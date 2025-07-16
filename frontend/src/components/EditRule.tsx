@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Button, 
   Dialog, 
@@ -65,6 +65,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
   const [monitorInterval, setMonitorInterval] = useState(10);
   const [previewItems, setPreviewItems] = useState<RSSItem[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [filterUpdateTrigger, setFilterUpdateTrigger] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -89,11 +90,11 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
     }
   }, [open, rule]);
 
-  // Auto-refresh preview when filters change (debounced)
+  // Auto-refresh preview when filters change
   useEffect(() => {
     if (rssUrl.trim() && previewItems.length > 0) {
-      // The preview will automatically update when getFilteredPreviewItems() is called
-      // No need to refetch from server, just reapply filters
+      // Trigger a re-render to update the filtered preview
+      setFilterUpdateTrigger(prev => prev + 1);
     }
   }, [maxTasks, downloadAfter, downloadLatest, maxSizeMb]);
 
@@ -125,27 +126,87 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
     }
   };
 
-  // Apply filters to preview items
-  const getFilteredPreviewItems = () => {
+  // Memoized filtered preview items to avoid recalculation
+  const filteredPreviewItems = useMemo(() => {
     if (!previewItems.length) return [];
 
-    return previewItems.filter(item => {
+    let filteredItems = previewItems.filter(item => {
       // Apply size filter
-      if (maxSizeMb) {
+      if (maxSizeMb && maxSizeMb.trim()) {
         const sizeLimit = parseInt(maxSizeMb);
-        const itemSize = parseFloat(item.size.replace(/[^\d.]/g, ''));
-        if (itemSize > sizeLimit) {
+        if (isNaN(sizeLimit)) return true; // If invalid size limit, don't filter
+        
+        // Parse size from different formats (e.g., "386.2 MiB", "1.2 GB", "500 MB")
+        let itemSizeMB = 0;
+        const sizeStr = item.size || '';
+        const sizeMatch = sizeStr.match(/(\d+\.?\d*)\s*(GB|MB|GiB|MiB|TB|TiB)/i);
+        
+        if (sizeMatch) {
+          const sizeValue = parseFloat(sizeMatch[1]);
+          const unit = sizeMatch[2].toUpperCase();
+          
+          switch (unit) {
+            case 'GB':
+            case 'GIB':
+              itemSizeMB = sizeValue * 1024;
+              break;
+            case 'TB':
+            case 'TIB':
+              itemSizeMB = sizeValue * 1024 * 1024;
+              break;
+            case 'MB':
+            case 'MIB':
+            default:
+              itemSizeMB = sizeValue;
+              break;
+          }
+        } else {
+          // Try to extract just numbers (fallback)
+          const numMatch = sizeStr.match(/(\d+\.?\d*)/);
+          if (numMatch) {
+            itemSizeMB = parseFloat(numMatch[1]);
+          }
+        }
+        
+        if (itemSizeMB > sizeLimit) {
           return false;
         }
       }
 
       // Apply time filter
-      if (downloadAfter) {
+      if (downloadAfter && downloadAfter.trim()) {
         try {
           const filterDate = new Date(downloadAfter);
-          const itemDate = new Date(item.published);
-          if (itemDate < filterDate) {
-            return false;
+          
+          // Parse item date - handle different formats
+          let itemDate: Date | null = null;
+          
+          // Try parsing the published date
+          const publishedStr = item.published;
+          if (publishedStr) {
+            // Handle relative time formats (e.g., "2小时前", "昨天 14:30")
+            if (publishedStr.includes('分钟前') || publishedStr.includes('小时前') || publishedStr.includes('天前')) {
+              // For relative times, we'll assume they're recent and include them
+              itemDate = new Date();
+            } else {
+              // Try to parse as regular date
+              itemDate = new Date(publishedStr);
+              
+              // If that fails, try common date formats
+              if (isNaN(itemDate.getTime())) {
+                // Try parsing MM-DD HH:MM format (add current year)
+                const currentYear = new Date().getFullYear();
+                const dateWithYear = `${currentYear}-${publishedStr}`;
+                itemDate = new Date(dateWithYear);
+              }
+            }
+          }
+          
+          // Check if both dates are valid
+          if (!isNaN(filterDate.getTime()) && itemDate && !isNaN(itemDate.getTime())) {
+            if (itemDate < filterDate) {
+              return false;
+            }
           }
         } catch (error) {
           // If date parsing fails, include the item
@@ -158,11 +219,15 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
       if (downloadLatest) {
         // For now, we'll just show all items since implementing proper duplicate detection
         // would require more complex logic based on episode numbers, etc.
+        // TODO: Implement proper duplicate detection based on episode numbers
       }
 
       return true;
-    }).slice(0, maxTasks); // Limit to max tasks
-  };
+    });
+
+    // Apply max tasks limit
+    return filteredItems.slice(0, maxTasks);
+  }, [previewItems, maxTasks, downloadAfter, downloadLatest, maxSizeMb]);
 
   // Trigger preview refresh when filters change
   const refreshPreviewWithFilters = () => {
@@ -375,13 +440,13 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                   {/* Filter Summary */}
                   <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      共 {previewItems.length} 个项目，应用过滤器后显示 {getFilteredPreviewItems().length} 个
-                      {maxTasks < getFilteredPreviewItems().length && ` (限制为前 ${maxTasks} 个)`}
+                      共 {previewItems.length} 个项目，应用过滤器后显示 {filteredPreviewItems.length} 个
+                      {maxTasks < filteredPreviewItems.length && ` (限制为前 ${maxTasks} 个)`}
                     </Typography>
                   </Box>
                   
                   <List dense>
-                    {getFilteredPreviewItems().map((item, index) => (
+                    {filteredPreviewItems.map((item, index) => (
                       <Box key={index}>
                         <ListItem alignItems="flex-start">
                           <ListItemText
@@ -417,7 +482,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                             }
                           />
                         </ListItem>
-                        {index < getFilteredPreviewItems().length - 1 && <Divider />}
+                        {index < filteredPreviewItems.length - 1 && <Divider />}
                       </Box>
                     ))}
                   </List>

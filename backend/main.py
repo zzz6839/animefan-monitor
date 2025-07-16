@@ -146,25 +146,51 @@ def extract_file_size(entry, rss_url: str) -> str:
         # Try different methods to extract size
         size = "未知"
         
-        # Method 1: Check enclosures (common in RSS feeds)
+        # Method 1: Check enclosures (common in RSS feeds, especially Mikan)
         if hasattr(entry, 'enclosures') and entry.enclosures:
             enclosure = entry.enclosures[0]
             if hasattr(enclosure, 'length') and enclosure.length:
                 try:
                     size_bytes = int(enclosure.length)
                     if size_bytes > 1024 * 1024 * 1024:  # GB
-                        size = f"{size_bytes / (1024*1024*1024):.1f}GB"
+                        size = f"{size_bytes / (1024*1024*1024):.1f} GB"
                     else:  # MB
-                        size = f"{size_bytes / (1024*1024):.1f}MB"
+                        size = f"{size_bytes / (1024*1024):.1f} MB"
                     return size
                 except:
                     pass
         
-        # Method 2: Extract from title (common pattern)
+        # Method 2: Mikan-specific size extraction from description
+        if 'mikan' in rss_url.lower():
+            description = entry.get('description', '')
+            # Mikan format: [ANi] Title [313.9 MB]
+            mikan_size_match = re.search(r'\[([0-9.]+\s*[KMGT]?B)\]', description)
+            if mikan_size_match:
+                return mikan_size_match.group(1)
+        
+        # Method 3: Nyaa-specific size extraction
+        if 'nyaa' in rss_url.lower():
+            # Check for nyaa_size field
+            if hasattr(entry, 'nyaa_size'):
+                return entry.nyaa_size
+            elif 'nyaa_size' in entry:
+                return entry['nyaa_size']
+            
+            # Check for size in tags
+            if hasattr(entry, 'tags') and entry.tags:
+                for tag in entry.tags:
+                    if 'size' in tag.get('term', '').lower():
+                        return tag.get('label', 'Unknown')
+        
+        # Method 4: Extract from title (common pattern)
         title = entry.get('title', '')
         size_patterns = [
+            r'(\d+\.?\d*\s*GiB)',
+            r'(\d+\.?\d*\s*MiB)',
             r'(\d+\.?\d*\s*GB)',
             r'(\d+\.?\d*\s*MB)',
+            r'(\d+\.?\d*GiB)',
+            r'(\d+\.?\d*MiB)',
             r'(\d+\.?\d*GB)',
             r'(\d+\.?\d*MB)',
         ]
@@ -174,7 +200,7 @@ def extract_file_size(entry, rss_url: str) -> str:
             if match:
                 return match.group(1)
         
-        # Method 3: Extract from description
+        # Method 5: Extract from description (general)
         description = entry.get('description', '')
         if description:
             for pattern in size_patterns:
@@ -182,13 +208,14 @@ def extract_file_size(entry, rss_url: str) -> str:
                 if match:
                     return match.group(1)
         
-        # Method 4: Check for RSS-specific size fields
-        if 'nyaa' in rss_url.lower():
-            # Nyaa-specific size field
-            if hasattr(entry, 'nyaa_size'):
-                return entry.nyaa_size
-            elif 'nyaa_size' in entry:
-                return entry['nyaa_size']
+        # Method 6: Check all entry fields for size information
+        for key, value in entry.items():
+            if isinstance(value, str) and ('size' in key.lower() or 'length' in key.lower()):
+                # Try to extract size from the value
+                for pattern in size_patterns:
+                    match = re.search(pattern, value, re.IGNORECASE)
+                    if match:
+                        return match.group(1)
         
         return size
         
@@ -205,18 +232,30 @@ def format_published_date(published: str) -> str:
         from datetime import datetime, timezone
         import time
         
-        # Try to parse the date
-        try:
-            # Common RSS date format: "Wed, 15 Jan 2025 12:30:00 +0000"
-            parsed_date = datetime.strptime(published, '%a, %d %b %Y %H:%M:%S %z')
-        except:
+        # Try to parse the date with multiple formats
+        parsed_date = None
+        date_formats = [
+            '%a, %d %b %Y %H:%M:%S %z',      # RFC 2822 with timezone
+            '%a, %d %b %Y %H:%M:%S',         # RFC 2822 without timezone
+            '%Y-%m-%dT%H:%M:%S.%f',          # Mikan ISO format with microseconds
+            '%Y-%m-%dT%H:%M:%S',             # ISO format without microseconds
+            '%Y-%m-%d %H:%M:%S',             # Simple format
+            '%Y-%m-%dT%H:%M:%S%z',           # ISO with timezone
+            '%Y-%m-%dT%H:%M:%SZ'             # ISO UTC
+        ]
+        
+        for fmt in date_formats:
             try:
-                # Alternative format without timezone
-                parsed_date = datetime.strptime(published, '%a, %d %b %Y %H:%M:%S')
-                parsed_date = parsed_date.replace(tzinfo=timezone.utc)
-            except:
-                # If parsing fails, return original
-                return published
+                parsed_date = datetime.strptime(published, fmt)
+                if parsed_date.tzinfo is None:
+                    parsed_date = parsed_date.replace(tzinfo=timezone.utc)
+                break
+            except ValueError:
+                continue
+        
+        if not parsed_date:
+            # If all parsing fails, return original
+            return published
         
         # Calculate time difference
         now = datetime.now(timezone.utc)
