@@ -72,7 +72,17 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
     setTestResult(null);
 
     try {
-      const response = await axios.post(`${API_BASE}/aria2_config/test`);
+      // Test connection with current form values, not saved config
+      const testConfig = {
+        host: host,
+        port: port,
+        rpc_path: rpcPath,
+        use_ssl: useSsl,
+        token: token,
+        download_path: downloadPath,
+      };
+
+      const response = await axios.post(`${API_BASE}/aria2_config/test`, testConfig);
       setTestResult(response.data);
     } catch (error) {
       console.error('Error testing connection:', error);

@@ -391,15 +391,20 @@ def read_aria2_config(db: Session = Depends(get_db)):
     return config
 
 @app.post("/aria2_config/test")
-def test_aria2_connection(db: Session = Depends(get_db)):
+def test_aria2_connection(config: schemas.Aria2ConfigCreate = None, db: Session = Depends(get_db)):
     logger.debug("Testing Aria2 connection")
-    config = crud.get_aria2_config(db)
-    if not config:
-        raise HTTPException(status_code=404, detail="Aria2 config not found")
+    
+    # Use provided config for testing, or fall back to saved config
+    if config is None:
+        config = crud.get_aria2_config(db)
+        if not config:
+            raise HTTPException(status_code=404, detail="Aria2 config not found")
     
     try:
         protocol = "https" if config.use_ssl else "http"
         url = f"{protocol}://{config.host}:{config.port}/{config.rpc_path}"
+        
+        logger.debug(f"Testing Aria2 connection to: {url}")
         
         payload = {
             "jsonrpc": "2.0",
@@ -416,8 +421,10 @@ def test_aria2_connection(db: Session = Depends(get_db)):
         
         result = response.json()
         if "result" in result:
+            logger.info(f"Aria2 connection test successful: {result['result']['version']}")
             return {"status": "success", "version": result["result"]["version"]}
         else:
+            logger.error(f"Invalid Aria2 response: {result}")
             return {"status": "error", "message": "Invalid response from Aria2"}
             
     except Exception as e:
