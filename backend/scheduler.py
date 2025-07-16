@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 import feedparser
 import logging
 
-from . import crud, models
-from .database import SessionLocal
+import crud
+from database import SessionLocal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
