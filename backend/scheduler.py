@@ -22,63 +22,85 @@ def send_to_aria2(aria2_config, download_url: str, filename: str = None) -> bool
         # Determine if this is a torrent URL or regular download
         is_torrent = download_url.endswith('.torrent') or 'torrent' in download_url.lower()
         
-        # Prepare RPC payload
+        # Prepare RPC payload according to Aria2 1.36 manual
         if is_torrent:
-            # For torrent files, use addTorrent method
-            payload = {
-                "jsonrpc": "2.0",
-                "method": "aria2.addTorrent",
-                "id": f"torrent_{datetime.datetime.now().timestamp()}",
-                "params": []
-            }
-        else:
-            # For regular URLs, use addUri method
-            payload = {
-                "jsonrpc": "2.0",
-                "method": "aria2.addUri",
-                "id": f"download_{datetime.datetime.now().timestamp()}",
-                "params": []
-            }
-        
-        # Add token if configured
-        if aria2_config.token:
-            payload["params"].append(f"token:{aria2_config.token}")
-        
-        if is_torrent:
-            # For torrents, we need to download the .torrent file first and pass it as base64
+            # For torrent files, download the .torrent file first and pass it as base64
             try:
                 import base64
                 torrent_response = requests.get(download_url, timeout=30)
                 torrent_response.raise_for_status()
                 torrent_data = base64.b64encode(torrent_response.content).decode('utf-8')
-                payload["params"].append(torrent_data)
-            except Exception as e:
-                logger.error(f"Failed to download torrent file: {e}")
-                # Fallback to addUri method
-                payload["method"] = "aria2.addUri"
-                payload["params"] = []
+                
+                # Correct format for aria2.addTorrent:
+                # If secret token is set: aria2.addTorrent(secret, torrent, [uris], [options], [position])
+                # If no secret: aria2.addTorrent(torrent, [uris], [options], [position])
+                payload = {
+                    "jsonrpc": "2.0",
+                    "method": "aria2.addTorrent",
+                    "id": f"torrent_{int(datetime.datetime.now().timestamp())}",
+                    "params": []
+                }
+                
+                # Add secret token if configured (must be first parameter)
                 if aria2_config.token:
                     payload["params"].append(f"token:{aria2_config.token}")
-                payload["params"].append([download_url])
+                
+                # Add torrent data (base64 encoded)
+                payload["params"].append(torrent_data)
+                
+                # Add empty uris array (optional additional sources)
+                payload["params"].append([])
+                
+                # Add options
+                options = {
+                    "dir": aria2_config.download_path,
+                    "continue": "true",
+                    "max-tries": "3"
+                }
+                payload["params"].append(options)
+                
+            except Exception as e:
+                logger.error(f"Failed to download torrent file: {e}")
+                return False
         else:
-            # Add download URL for regular downloads
-            payload["params"].append([download_url])
-        
-        # Add options
-        options = {
-            "dir": aria2_config.download_path,
-            "continue": "true",  # Enable resume
-            "max-tries": "3",    # Retry failed downloads
-        }
-        if filename and not is_torrent:
-            # Only set filename for non-torrent downloads
-            options["out"] = filename
+            # For regular URLs, use addUri method
+            # If secret token is set: aria2.addUri(secret, uris, [options], [position])
+            # If no secret: aria2.addUri(uris, [options], [position])
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "aria2.addUri",
+                "id": f"download_{int(datetime.datetime.now().timestamp())}",
+                "params": []
+            }
             
-        payload["params"].append(options)
+            # Add secret token if configured (must be first parameter)
+            if aria2_config.token:
+                payload["params"].append(f"token:{aria2_config.token}")
+            
+            # Add download URLs array
+            payload["params"].append([download_url])
+            
+            # Add options
+            options = {
+                "dir": aria2_config.download_path,
+                "continue": "true",
+                "max-tries": "3"
+            }
+            if filename:
+                options["out"] = filename
+                
+            payload["params"].append(options)
         
         # Send request
         logger.debug(f"Sending Aria2 RPC request: {payload['method']} to {rpc_url}")
+        logger.debug(f"Payload: {payload}")
+        
         response = requests.post(rpc_url, json=payload, timeout=30)
+        
+        # Log the response for debugging
+        logger.debug(f"Aria2 response status: {response.status_code}")
+        logger.debug(f"Aria2 response: {response.text}")
+        
         response.raise_for_status()
         
         result = response.json()
@@ -87,7 +109,8 @@ def send_to_aria2(aria2_config, download_url: str, filename: str = None) -> bool
             return True
         else:
             error_msg = result.get('error', {}).get('message', 'Unknown error')
-            logger.error(f"Aria2 RPC error: {error_msg}")
+            error_code = result.get('error', {}).get('code', 'Unknown code')
+            logger.error(f"Aria2 RPC error: {error_code} - {error_msg}")
             return False
             
     except Exception as e:
@@ -126,36 +149,110 @@ def get_torrent_url(entry: Dict[str, Any], rss_url: str) -> str:
 def matches_filters(entry: Dict[str, Any], rule) -> bool:
     """Check if RSS entry matches rule filters"""
     try:
+        title = entry.get('title', '')
+        
         # Check size filter
         if rule.max_size_mb:
-            # Try to extract size from entry (this depends on RSS feed format)
-            size_str = entry.get('size', '0')
-            try:
-                # Parse size string (e.g., "386.2MB" -> 386.2)
-                size_mb = float(''.join(filter(str.isdigit or '.'.__eq__, size_str)))
-                if size_mb > rule.max_size_mb:
-                    logger.debug(f"Entry {entry.get('title', '')} exceeds size limit: {size_mb}MB > {rule.max_size_mb}MB")
-                    return False
-            except (ValueError, TypeError):
-                logger.debug(f"Could not parse size for entry: {entry.get('title', '')}")
+            # Try to extract size from multiple sources
+            size_mb = 0
+            
+            # Method 1: Check if entry has size field
+            if hasattr(entry, 'nyaa_size'):
+                size_str = entry.nyaa_size
+            elif 'nyaa_size' in entry:
+                size_str = entry['nyaa_size']
+            else:
+                size_str = entry.get('size', '')
+            
+            # Method 2: Extract from title or description
+            if not size_str:
+                import re
+                # Look for size patterns in title
+                size_patterns = [
+                    r'(\d+\.?\d*)\s*GB',
+                    r'(\d+\.?\d*)\s*MB',
+                    r'(\d+\.?\d*)\s*GiB',
+                    r'(\d+\.?\d*)\s*MiB'
+                ]
+                
+                for pattern in size_patterns:
+                    match = re.search(pattern, title, re.IGNORECASE)
+                    if match:
+                        size_value = float(match.group(1))
+                        if 'GB' in match.group(0).upper() or 'GIB' in match.group(0).upper():
+                            size_mb = size_value * 1024
+                        else:
+                            size_mb = size_value
+                        break
+            else:
+                # Parse size string (e.g., "386.2 MiB" -> 386.2)
+                try:
+                    import re
+                    size_match = re.search(r'(\d+\.?\d*)\s*(GB|MB|GiB|MiB)', size_str, re.IGNORECASE)
+                    if size_match:
+                        size_value = float(size_match.group(1))
+                        unit = size_match.group(2).upper()
+                        if unit in ['GB', 'GIB']:
+                            size_mb = size_value * 1024
+                        else:
+                            size_mb = size_value
+                except (ValueError, TypeError):
+                    logger.debug(f"Could not parse size string: {size_str}")
+            
+            if size_mb > 0 and size_mb > rule.max_size_mb:
+                logger.debug(f"Entry {title} exceeds size limit: {size_mb}MB > {rule.max_size_mb}MB")
+                return False
         
         # Check time filter
         if rule.download_after:
             try:
-                entry_date = datetime.datetime.strptime(entry.get('published', ''), '%a, %d %b %Y %H:%M:%S %z')
-                if entry_date < rule.download_after:
-                    logger.debug(f"Entry {entry.get('title', '')} is too old")
-                    return False
-            except (ValueError, TypeError):
-                logger.debug(f"Could not parse date for entry: {entry.get('title', '')}")
+                published = entry.get('published', '')
+                if published:
+                    # Try multiple date formats
+                    date_formats = [
+                        '%a, %d %b %Y %H:%M:%S %z',  # RFC 2822 with timezone
+                        '%a, %d %b %Y %H:%M:%S',     # RFC 2822 without timezone
+                        '%Y-%m-%d %H:%M:%S',         # ISO format
+                        '%Y-%m-%dT%H:%M:%S%z',       # ISO with timezone
+                        '%Y-%m-%dT%H:%M:%SZ'         # ISO UTC
+                    ]
+                    
+                    entry_date = None
+                    for fmt in date_formats:
+                        try:
+                            entry_date = datetime.datetime.strptime(published, fmt)
+                            break
+                        except ValueError:
+                            continue
+                    
+                    if entry_date:
+                        # Convert rule.download_after to datetime if it's a string
+                        if isinstance(rule.download_after, str):
+                            filter_date = datetime.datetime.fromisoformat(rule.download_after.replace('Z', '+00:00'))
+                        else:
+                            filter_date = rule.download_after
+                        
+                        # Make both dates timezone-aware or naive for comparison
+                        if entry_date.tzinfo is None and filter_date.tzinfo is not None:
+                            entry_date = entry_date.replace(tzinfo=datetime.timezone.utc)
+                        elif entry_date.tzinfo is not None and filter_date.tzinfo is None:
+                            filter_date = filter_date.replace(tzinfo=datetime.timezone.utc)
+                        
+                        if entry_date < filter_date:
+                            logger.debug(f"Entry {title} is too old: {entry_date} < {filter_date}")
+                            return False
+                    else:
+                        logger.debug(f"Could not parse date for entry: {title} - {published}")
+            except Exception as e:
+                logger.debug(f"Error parsing date for entry {title}: {e}")
         
         # Check subtitle group filter (if not "全部")
         if rule.subtitle_group != "<全部>":
-            title = entry.get('title', '').lower()
-            if rule.subtitle_group.lower() not in title:
-                logger.debug(f"Entry {entry.get('title', '')} doesn't match subtitle group filter")
+            if rule.subtitle_group.lower() not in title.lower():
+                logger.debug(f"Entry {title} doesn't match subtitle group filter: {rule.subtitle_group}")
                 return False
         
+        logger.debug(f"Entry {title} passed all filters")
         return True
         
     except Exception as e:
@@ -273,21 +370,36 @@ def check_individual_rule(rule_id: int):
             logger.warning(f"No entries found in RSS feed for rule: {rule.name}")
             return
         
-        # Process entries
+        logger.info(f"Found {len(feed.entries)} entries in RSS feed for rule: {rule.name}")
+        
+        # Process entries with proper filtering
         processed_count = 0
         for entry in feed.entries:
             if processed_count >= rule.max_tasks:
+                logger.info(f"Reached max tasks limit ({rule.max_tasks}) for rule: {rule.name}")
                 break
             
+            # Apply all filters
             if not matches_filters(entry, rule):
+                logger.debug(f"Entry filtered out: {entry.get('title', '')}")
                 continue
             
-            download_url = entry.get('link', '')
-            if download_url:
+            # Extract the correct torrent URL based on RSS source
+            torrent_url = get_torrent_url(entry, rule.rss_url)
+            
+            if torrent_url:
                 title = entry.get('title', 'Unknown')
-                success = send_to_aria2(aria2_config, download_url, title)
+                logger.info(f"Creating download task for: {title}")
+                logger.debug(f"Torrent URL: {torrent_url}")
+                
+                success = send_to_aria2(aria2_config, torrent_url, title)
                 if success:
                     processed_count += 1
+                    logger.info(f"Successfully created download task for: {title}")
+                else:
+                    logger.error(f"Failed to create download task for: {title}")
+            else:
+                logger.warning(f"No torrent URL found for entry: {entry.get('title', '')}")
         
         # Update last update time
         rule.last_update_time = datetime.datetime.utcnow()

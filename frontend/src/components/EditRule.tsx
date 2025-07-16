@@ -89,6 +89,14 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
     }
   }, [open, rule]);
 
+  // Auto-refresh preview when filters change (debounced)
+  useEffect(() => {
+    if (rssUrl.trim() && previewItems.length > 0) {
+      // The preview will automatically update when getFilteredPreviewItems() is called
+      // No need to refetch from server, just reapply filters
+    }
+  }, [maxTasks, downloadAfter, downloadLatest, maxSizeMb]);
+
   const resetForm = () => {
     setName('');
     setRssUrl('');
@@ -114,6 +122,52 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
       setPreviewItems([]);
     } finally {
       setIsLoadingPreview(false);
+    }
+  };
+
+  // Apply filters to preview items
+  const getFilteredPreviewItems = () => {
+    if (!previewItems.length) return [];
+
+    return previewItems.filter(item => {
+      // Apply size filter
+      if (maxSizeMb) {
+        const sizeLimit = parseInt(maxSizeMb);
+        const itemSize = parseFloat(item.size.replace(/[^\d.]/g, ''));
+        if (itemSize > sizeLimit) {
+          return false;
+        }
+      }
+
+      // Apply time filter
+      if (downloadAfter) {
+        try {
+          const filterDate = new Date(downloadAfter);
+          const itemDate = new Date(item.published);
+          if (itemDate < filterDate) {
+            return false;
+          }
+        } catch (error) {
+          // If date parsing fails, include the item
+          console.debug('Date parsing error:', error);
+        }
+      }
+
+      // Apply latest version filter (basic implementation)
+      // This is a simplified version - in practice, you'd need more sophisticated logic
+      if (downloadLatest) {
+        // For now, we'll just show all items since implementing proper duplicate detection
+        // would require more complex logic based on episode numbers, etc.
+      }
+
+      return true;
+    }).slice(0, maxTasks); // Limit to max tasks
+  };
+
+  // Trigger preview refresh when filters change
+  const refreshPreviewWithFilters = () => {
+    if (rssUrl.trim()) {
+      fetchPreview(rssUrl);
     }
   };
 
@@ -314,50 +368,60 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                 </IconButton>
               </Box>
               
-              {isLoadingPreview ? (
+{isLoadingPreview ? (
                 <Typography>加载中...</Typography>
               ) : previewItems.length > 0 ? (
-                <List dense>
-                  {previewItems.map((item, index) => (
-                    <Box key={index}>
-                      <ListItem alignItems="flex-start">
-                        <ListItemText
-                          primary={
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                fontWeight: 'bold',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical'
-                              }}
-                            >
-                              {item.title}
-                            </Typography>
-                          }
-                          secondary={
-                            <Box>
-                              <Typography variant="caption" color="text.secondary">
-                                字幕组: {item.subtitle_group}
+                <>
+                  {/* Filter Summary */}
+                  <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      共 {previewItems.length} 个项目，应用过滤器后显示 {getFilteredPreviewItems().length} 个
+                      {maxTasks < getFilteredPreviewItems().length && ` (限制为前 ${maxTasks} 个)`}
+                    </Typography>
+                  </Box>
+                  
+                  <List dense>
+                    {getFilteredPreviewItems().map((item, index) => (
+                      <Box key={index}>
+                        <ListItem alignItems="flex-start">
+                          <ListItemText
+                            primary={
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  fontWeight: 'bold',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical'
+                                }}
+                              >
+                                {item.title}
                               </Typography>
-                              <br />
-                              <Typography variant="caption" color="text.secondary">
-                                大小: {item.size}
-                              </Typography>
-                              <br />
-                              <Typography variant="caption" color="text.secondary">
-                                发布于 {item.published}
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                      {index < previewItems.length - 1 && <Divider />}
-                    </Box>
-                  ))}
-                </List>
+                            }
+                            secondary={
+                              <Box>
+                                <Typography variant="caption" color="text.secondary">
+                                  字幕组: {item.subtitle_group}
+                                </Typography>
+                                <br />
+                                <Typography variant="caption" color="text.secondary">
+                                  大小: {item.size}
+                                </Typography>
+                                <br />
+                                <Typography variant="caption" color="text.secondary">
+                                  发布于 {item.published}
+                                </Typography>
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                        {index < getFilteredPreviewItems().length - 1 && <Divider />}
+                      </Box>
+                    ))}
+                  </List>
+                </>
               ) : rssUrl.trim() ? (
                 <Typography color="text.secondary">
                   无法获取预览数据，请检查RSS地址是否正确

@@ -90,7 +90,7 @@ def preview_rss(request: schemas.RSSPreviewRequest):
         feed = feedparser.parse(request.rss_url)
         items = []
         
-        for entry in feed.entries[:20]:  # Limit to 20 items
+        for entry in feed.entries[:50]:  # Get more items for filtering
             # Extract basic info
             title = entry.get('title', '')
             published = entry.get('published', '')
