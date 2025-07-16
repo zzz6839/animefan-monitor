@@ -36,6 +36,11 @@ interface Rule {
   creation_time: string;
   last_update_time: string | null;
   subtitle_group: string;
+  download_after?: string | null;
+  download_latest?: boolean;
+  max_size_mb?: number | null;
+  auto_create_tasks?: boolean;
+  monitor_interval?: number;
 }
 
 interface RSSItem {
@@ -218,19 +223,25 @@ function App() {
       console.log('Fetching preview for:', { rssUrl, ruleId });
       let response;
       if (ruleId) {
-        // Use filtered preview when a rule is selected
+        // Use filtered preview when a rule is selected - this shows the same results as the edit rule page
         console.log('Using filtered preview with rule ID:', ruleId);
         response = await axios.post(`${API_BASE}/rss/preview_filtered`, {
           rss_url: rssUrl,
           rule_id: ruleId
         });
+        console.log('Filtered preview response:', response.data);
       } else {
         // Use unfiltered preview as fallback
         console.log('Using unfiltered preview');
         response = await axios.post(`${API_BASE}/rss/preview`, { rss_url: rssUrl });
+        console.log('Unfiltered preview response:', response.data);
       }
-      console.log('Preview response:', response.data);
       setPreviewItems(response.data);
+      
+      // Show success message to confirm filtering is working
+      if (ruleId && response.data.length >= 0) {
+        console.log(`Filtered preview loaded: ${response.data.length} items match the rule criteria`);
+      }
     } catch (error) {
       console.error('Error fetching preview:', error);
       showSnackbar(t('message.preview_error'), 'error');
@@ -485,9 +496,17 @@ function App() {
       {showPreview && selectedRule && (
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
-              {t('preview.title')}: {selectedRule.name}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h6">
+                {t('preview.title')}: {selectedRule.name}
+              </Typography>
+              <Chip 
+                size="small" 
+                color="primary" 
+                label={t('preview.filtered')} 
+                sx={{ fontSize: '0.7rem' }} 
+              />
+            </Box>
             <Typography variant="body2" color="text.secondary">
               {previewItems.length > 0 ? t('preview.count', { count: previewItems.length }) : t('preview.no_items')}
             </Typography>

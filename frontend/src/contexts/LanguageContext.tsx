@@ -42,6 +42,7 @@ const translations: Record<Language, TranslationDict> = {
     // Preview
     'preview.label': '预览选中的规则',
     'preview.title': '预览',
+    'preview.filtered': '已过滤',
     'preview.count': '显示 {count} 个符合条件的项目',
     'preview.no_items': '无符合条件的项目',
     'preview.no_rule': '该规则当前没有符合条件的项目',
@@ -146,6 +147,7 @@ const translations: Record<Language, TranslationDict> = {
     // Preview
     'preview.label': 'Preview Selected Rule',
     'preview.title': 'Preview',
+    'preview.filtered': 'Filtered',
     'preview.count': 'Showing {count} matching items',
     'preview.no_items': 'No matching items',
     'preview.no_rule': 'This rule currently has no matching items',
