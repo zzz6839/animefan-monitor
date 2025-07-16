@@ -222,26 +222,34 @@ function App() {
     try {
       console.log('Fetching preview for:', { rssUrl, ruleId });
       let response;
+      
       if (ruleId) {
-        // Use filtered preview when a rule is selected - this shows the same results as the edit rule page
+        // Try filtered preview first - this should match what the scheduler will actually download
         console.log('Using filtered preview with rule ID:', ruleId);
-        response = await axios.post(`${API_BASE}/rss/preview_filtered`, {
-          rss_url: rssUrl,
-          rule_id: ruleId
-        });
-        console.log('Filtered preview response:', response.data);
-      } else {
-        // Use unfiltered preview as fallback
-        console.log('Using unfiltered preview');
-        response = await axios.post(`${API_BASE}/rss/preview`, { rss_url: rssUrl });
-        console.log('Unfiltered preview response:', response.data);
+        try {
+          response = await axios.post(`${API_BASE}/rss/preview_filtered`, {
+            rss_url: rssUrl,
+            rule_id: ruleId
+          });
+          console.log('Filtered preview response:', response.data);
+          setPreviewItems(response.data);
+          
+          if (response.data.length >= 0) {
+            console.log(`Filtered preview loaded: ${response.data.length} items match the rule criteria`);
+          }
+          return; // Success with filtered preview
+        } catch (error) {
+          console.warn('Filtered preview failed, falling back to unfiltered:', error);
+          // Fall through to unfiltered preview
+        }
       }
+      
+      // Fallback: Use unfiltered preview
+      console.log('Using unfiltered preview');
+      response = await axios.post(`${API_BASE}/rss/preview`, { rss_url: rssUrl });
+      console.log('Unfiltered preview response:', response.data);
       setPreviewItems(response.data);
       
-      // Show success message to confirm filtering is working
-      if (ruleId && response.data.length >= 0) {
-        console.log(`Filtered preview loaded: ${response.data.length} items match the rule criteria`);
-      }
     } catch (error) {
       console.error('Error fetching preview:', error);
       showSnackbar(t('message.preview_error'), 'error');

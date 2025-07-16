@@ -306,8 +306,17 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
         
         # Check subtitle group filter (if not "全部")
         if rule.subtitle_group != "<全部>":
-            if rule.subtitle_group.lower() not in title.lower():
-                logger.debug(f"Entry {title} doesn't match subtitle group filter: {rule.subtitle_group}")
+            # Extract subtitle group from title using the same logic as main.py
+            import re
+            # Pattern: [GroupName] or (GroupName) at the beginning
+            match = re.match(r'[\[\(]([^\]\)]+)[\]\)]', title)
+            entry_subtitle_group = match.group(1) if match else "未知字幕组"
+            
+            logger.debug(f"Checking subtitle group filter - Rule: '{rule.subtitle_group}', Entry: '{entry_subtitle_group}', Title: '{title}'")
+            
+            # Compare subtitle groups (case-insensitive)
+            if rule.subtitle_group.lower() != entry_subtitle_group.lower():
+                logger.debug(f"Entry {title} doesn't match subtitle group filter: expected '{rule.subtitle_group}', got '{entry_subtitle_group}'")
                 return False
         
         logger.debug(f"Entry {title} passed all filters")
