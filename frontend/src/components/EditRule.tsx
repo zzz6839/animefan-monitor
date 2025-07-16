@@ -20,6 +20,7 @@ import {
   useTheme
 } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { API_BASE } from '../config/api';
 import axios from 'axios';
 
 interface Rule {
@@ -65,8 +66,6 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
   const [monitorInterval, setMonitorInterval] = useState(10);
   const [previewItems, setPreviewItems] = useState<RSSItem[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-
-  const API_BASE = 'http://localhost:58000';
 
   useEffect(() => {
     if (open) {

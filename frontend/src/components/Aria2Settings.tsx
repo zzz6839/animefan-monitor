@@ -14,6 +14,7 @@ import {
   Link,
   CircularProgress
 } from '@mui/material';
+import { API_BASE } from '../config/api';
 import axios from 'axios';
 
 interface Aria2SettingsProps {
@@ -30,8 +31,6 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
   const [downloadPath, setDownloadPath] = useState('/downloads');
   const [testResult, setTestResult] = useState<{ status: string; message?: string; version?: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
-
-  const API_BASE = 'http://localhost:58000';
 
   useEffect(() => {
     if (open) {

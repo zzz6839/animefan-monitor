@@ -9,6 +9,11 @@ RUN npm install --legacy-peer-deps
 
 COPY . .
 
+# Build the application for production
+RUN npm run build
+
 EXPOSE 53000
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "53000"]
+# Use a simple HTTP server to serve the built files with proper CORS headers
+RUN npm install -g serve
+CMD ["serve", "-s", "dist", "-l", "53000", "--cors"]

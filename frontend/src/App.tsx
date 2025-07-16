@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { Brightness4, Brightness7 } from '@mui/icons-material';
 import { useTheme } from './contexts/ThemeContext';
+import { API_BASE } from './config/api';
 import EditRule from './components/EditRule';
 import Aria2Settings from './components/Aria2Settings';
 
@@ -54,8 +55,6 @@ function App() {
   const [aria2SettingsOpen, setAria2SettingsOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const { darkMode, toggleDarkMode } = useTheme();
-
-  const API_BASE = 'http://localhost:58000';
 
   useEffect(() => {
     fetchRules();
