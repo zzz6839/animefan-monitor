@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { 
-  Button, 
-  Dialog, 
-  DialogActions, 
-  DialogContent, 
-  DialogTitle, 
-  TextField, 
-  Checkbox, 
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Checkbox,
   FormControlLabel,
   Grid,
   Typography,
@@ -21,6 +21,7 @@ import {
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 import { API_BASE } from '../config/api';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useTimezone } from '../contexts/TimezoneContext';
 import axios from 'axios';
 
 interface Rule {
@@ -56,6 +57,7 @@ interface EditRuleProps {
 
 function EditRule({ open, onClose, rule }: EditRuleProps) {
   const { t } = useLanguage();
+  const { formatDate, formatTime } = useTimezone();
   const [name, setName] = useState('');
   const [rssUrl, setRssUrl] = useState('');
   const [enabled, setEnabled] = useState(true);
@@ -118,7 +120,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
 
   const fetchPreview = async (url: string) => {
     if (!url.trim()) return;
-    
+
     setIsLoadingPreview(true);
     try {
       const response = await axios.post(`${API_BASE}/rss/preview`, { rss_url: url });
@@ -140,16 +142,16 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
       if (maxSizeMb && maxSizeMb.trim()) {
         const sizeLimit = parseInt(maxSizeMb);
         if (isNaN(sizeLimit)) return true; // If invalid size limit, don't filter
-        
+
         // Parse size from different formats (e.g., "386.2 MiB", "1.2 GB", "500 MB")
         let itemSizeMB = 0;
         const sizeStr = item.size || '';
         const sizeMatch = sizeStr.match(/(\d+\.?\d*)\s*(GB|MB|GiB|MiB|TB|TiB)/i);
-        
+
         if (sizeMatch) {
           const sizeValue = parseFloat(sizeMatch[1]);
           const unit = sizeMatch[2].toUpperCase();
-          
+
           switch (unit) {
             case 'GB':
             case 'GIB':
@@ -172,7 +174,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
             itemSizeMB = parseFloat(numMatch[1]);
           }
         }
-        
+
         if (itemSizeMB > sizeLimit) {
           return false;
         }
@@ -182,15 +184,15 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
       if (downloadAfter && downloadAfter.trim()) {
         try {
           const filterDate = new Date(downloadAfter);
-          
+
           // Parse item date - now simplified since backend returns ISO format
           let itemDate: Date | null = null;
-          
+
           const publishedStr = item.published;
           if (publishedStr && publishedStr !== "未知时间") {
             // Backend now returns ISO format dates, so direct parsing should work
             itemDate = new Date(publishedStr);
-            
+
             // If direct parsing fails, try some fallback formats
             if (isNaN(itemDate.getTime())) {
               // Handle any remaining relative time formats (fallback)
@@ -227,7 +229,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
               }
             }
           }
-          
+
           // Debug logging for troubleshooting
           console.log('Date filter debug:', {
             filterDate: filterDate.toISOString(),
@@ -240,7 +242,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
             comparison: itemDate && itemDate < filterDate ? 'FILTERED OUT (too old)' : 'INCLUDED (recent enough)',
             timeDiff: itemDate ? `${Math.round((itemDate.getTime() - filterDate.getTime()) / (1000 * 60 * 60))} hours` : 'N/A'
           });
-          
+
           // Apply the filter: exclude items older than the specified date
           if (!isNaN(filterDate.getTime()) && itemDate && !isNaN(itemDate.getTime())) {
             if (itemDate < filterDate) {
@@ -296,7 +298,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
         acc[group] = (acc[group] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-      
+
       // Find the most frequent subtitle group (excluding "未知字幕组")
       const validGroups = Object.entries(groupCounts).filter(([group]) => group !== "未知字幕组");
       if (validGroups.length > 0) {
@@ -369,19 +371,19 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
               <Box sx={{ pl: 2 }}>
                 <FormControlLabel
                   control={
-                    <Checkbox 
-                      checked={enabled} 
-                      onChange={(e) => setEnabled(e.target.checked)} 
+                    <Checkbox
+                      checked={enabled}
+                      onChange={(e) => setEnabled(e.target.checked)}
                     />
                   }
                   label={t('edit_rule.enable_immediately')}
                 />
-                
+
                 <FormControlLabel
                   control={
-                    <Checkbox 
-                      checked={autoCreateTasks} 
-                      onChange={(e) => setAutoCreateTasks(e.target.checked)} 
+                    <Checkbox
+                      checked={autoCreateTasks}
+                      onChange={(e) => setAutoCreateTasks(e.target.checked)}
                     />
                   }
                   label={t('edit_rule.auto_create_tasks')}
@@ -414,15 +416,15 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                 <Box sx={{ my: 2 }}>
                   <FormControlLabel
                     control={
-                      <Checkbox 
-                        checked={!!downloadAfter} 
+                      <Checkbox
+                        checked={!!downloadAfter}
                         onChange={(e) => {
                           if (e.target.checked) {
                             setDownloadAfter(new Date().toISOString().slice(0, 16));
                           } else {
                             setDownloadAfter('');
                           }
-                        }} 
+                        }}
                       />
                     }
                     label={t('edit_rule.download_after')}
@@ -440,24 +442,24 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
 
                 <FormControlLabel
                   control={
-                    <Checkbox 
-                      checked={downloadLatest} 
-                      onChange={(e) => setDownloadLatest(e.target.checked)} 
+                    <Checkbox
+                      checked={downloadLatest}
+                      onChange={(e) => setDownloadLatest(e.target.checked)}
                     />
                   }
                   label={t('edit_rule.download_latest')}
                 />
 
                 <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                  <Checkbox 
-                    checked={!!maxSizeMb} 
+                  <Checkbox
+                    checked={!!maxSizeMb}
                     onChange={(e) => {
                       if (e.target.checked) {
                         setMaxSizeMb('1000');
                       } else {
                         setMaxSizeMb('');
                       }
-                    }} 
+                    }}
                   />
                   <Typography sx={{ mr: 1 }}>{t('edit_rule.max_size')}</Typography>
                   <TextField
@@ -481,7 +483,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                 <Typography variant="h6">
                   {t('edit_rule.preview_title')}
                 </Typography>
-                <IconButton 
+                <IconButton
                   onClick={() => fetchPreview(rssUrl)}
                   disabled={!rssUrl.trim() || isLoadingPreview}
                   size="small"
@@ -490,8 +492,8 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                   <RefreshIcon />
                 </IconButton>
               </Box>
-              
-{isLoadingPreview ? (
+
+              {isLoadingPreview ? (
                 <Typography>{t('edit_rule.loading')}</Typography>
               ) : previewItems.length > 0 ? (
                 <>
@@ -502,16 +504,16 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                       {maxTasks < filteredPreviewItems.length && t('edit_rule.filter_limit', { limit: maxTasks })}
                     </Typography>
                   </Box>
-                  
+
                   <List dense>
                     {filteredPreviewItems.map((item, index) => (
                       <Box key={index}>
                         <ListItem alignItems="flex-start">
                           <ListItemText
                             primary={
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
+                              <Typography
+                                variant="body2"
+                                sx={{
                                   fontWeight: 'bold',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -534,7 +536,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                                 </Typography>
                                 <br />
                                 <Typography variant="caption" color="text.secondary">
-                                  {t('preview.table.publish_time')} {item.published}
+                                  {t('preview.table.publish_time')} {item.published && item.published !== "未知时间" ? formatDate(item.published) : item.published}
                                 </Typography>
                               </Box>
                             }

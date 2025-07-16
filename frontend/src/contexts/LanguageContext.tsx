@@ -28,7 +28,7 @@ const translations: Record<Language, TranslationDict> = {
     'button.save': '保存',
     'button.cancel': '取消',
     'button.save_rule': '保存规则',
-    'button.timezone_settings': '时区设置',
+
 
     // Table headers
     'table.select_all': '全选/取消全选',
@@ -142,7 +142,7 @@ const translations: Record<Language, TranslationDict> = {
     'button.save': 'Save',
     'button.cancel': 'Cancel',
     'button.save_rule': 'Save Rule',
-    'button.timezone_settings': 'Timezone Settings',
+
 
     // Table headers
     'table.select_all': 'Select All/Deselect All',

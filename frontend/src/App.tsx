@@ -27,7 +27,7 @@ import { useTimezone } from './contexts/TimezoneContext';
 import { API_BASE } from './config/api';
 import EditRule from './components/EditRule';
 import Aria2Settings from './components/Aria2Settings';
-import TimezoneSettings from './components/TimezoneSettings';
+
 
 interface Rule {
   id: number;
@@ -63,7 +63,6 @@ function App() {
   const [editRuleOpen, setEditRuleOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [aria2SettingsOpen, setAria2SettingsOpen] = useState(false);
-  const [timezoneSettingsOpen, setTimezoneSettingsOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   // Sorting state
@@ -350,12 +349,7 @@ function App() {
           >
             {t('button.downloader_settings')}
           </Button>
-          <Button
-            variant="outlined"
-            onClick={() => setTimezoneSettingsOpen(true)}
-          >
-            {t('button.timezone_settings')}
-          </Button>
+
         </Box>
 
         <TableContainer component={Paper} sx={{ mb: 2 }}>
@@ -645,10 +639,7 @@ function App() {
           onClose={() => setAria2SettingsOpen(false)}
         />
 
-        <TimezoneSettings
-          open={timezoneSettingsOpen}
-          onClose={() => setTimezoneSettingsOpen(false)}
-        />
+
 
         <Snackbar
           open={snackbar.open}

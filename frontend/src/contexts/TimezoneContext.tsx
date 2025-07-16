@@ -28,24 +28,29 @@ export const TIMEZONE_OPTIONS = [
 ];
 
 export const TimezoneProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [timezone, setTimezoneState] = useState<string>(() => {
-    // Try to get saved timezone, fallback to browser timezone, then to Asia/Shanghai
-    const saved = localStorage.getItem('timezone');
-    if (saved) return saved;
+  const [timezone] = useState<string>(() => {
+    // Read timezone from environment variable (set via Docker Compose)
+    const envTimezone = import.meta.env.VITE_TIMEZONE;
     
+    if (envTimezone) {
+      console.log('Using timezone from Docker environment:', envTimezone);
+      return envTimezone;
+    }
+    
+    // Fallback to browser timezone or default
     try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log('Using browser timezone:', browserTimezone);
+      return browserTimezone;
     } catch {
+      console.log('Using default timezone: Asia/Shanghai');
       return 'Asia/Shanghai';
     }
   });
 
-  useEffect(() => {
-    localStorage.setItem('timezone', timezone);
-  }, [timezone]);
-
+  // Remove setTimezone function since timezone is now read-only from environment
   const setTimezone = (newTimezone: string) => {
-    setTimezoneState(newTimezone);
+    console.warn('Timezone is configured via Docker Compose environment variable (VITE_TIMEZONE) and cannot be changed at runtime');
   };
 
   const formatDateTime = (dateString: string, options?: Intl.DateTimeFormatOptions): string => {

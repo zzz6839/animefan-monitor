@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
-      - timezone=Asia/Shanghai
+      - TZ=Asia/Shanghai
 
   frontend:
     #build: ./frontend
@@ -21,6 +21,7 @@ services:
     restart: unless-stopped
     environment:
       - VITE_API_BASE_URL=http://backend:58000
-
+      - TZ=Asia/Shanghai
+      - VITE_TIMEZONE=Asia/Shanghai
 volumes:
   backend_data:
