@@ -156,48 +156,73 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
             # Try to extract size from multiple sources
             size_mb = 0
             
-            # Method 1: Check if entry has size field
-            if hasattr(entry, 'nyaa_size'):
-                size_str = entry.nyaa_size
-            elif 'nyaa_size' in entry:
-                size_str = entry['nyaa_size']
-            else:
-                size_str = entry.get('size', '')
+            # Method 1: Check enclosures (common in RSS feeds, especially Mikan)
+            if hasattr(entry, 'enclosures') and entry.enclosures:
+                enclosure = entry.enclosures[0]
+                if hasattr(enclosure, 'length') and enclosure.length:
+                    try:
+                        size_bytes = int(enclosure.length)
+                        size_mb = size_bytes / (1024 * 1024)  # Convert to MB
+                    except:
+                        pass
             
-            # Method 2: Extract from title or description
-            if not size_str:
-                import re
-                # Look for size patterns in title
-                size_patterns = [
-                    r'(\d+\.?\d*)\s*GB',
-                    r'(\d+\.?\d*)\s*MB',
-                    r'(\d+\.?\d*)\s*GiB',
-                    r'(\d+\.?\d*)\s*MiB'
-                ]
+            # Method 2: Check if entry has size field
+            if size_mb == 0:
+                if hasattr(entry, 'nyaa_size'):
+                    size_str = entry.nyaa_size
+                elif 'nyaa_size' in entry:
+                    size_str = entry['nyaa_size']
+                else:
+                    size_str = entry.get('size', '')
                 
-                for pattern in size_patterns:
-                    match = re.search(pattern, title, re.IGNORECASE)
-                    if match:
-                        size_value = float(match.group(1))
-                        if 'GB' in match.group(0).upper() or 'GIB' in match.group(0).upper():
-                            size_mb = size_value * 1024
-                        else:
-                            size_mb = size_value
-                        break
-            else:
-                # Parse size string (e.g., "386.2 MiB" -> 386.2)
-                try:
+                # Method 3: Extract from title or description
+                if not size_str:
                     import re
-                    size_match = re.search(r'(\d+\.?\d*)\s*(GB|MB|GiB|MiB)', size_str, re.IGNORECASE)
-                    if size_match:
-                        size_value = float(size_match.group(1))
-                        unit = size_match.group(2).upper()
-                        if unit in ['GB', 'GIB']:
-                            size_mb = size_value * 1024
-                        else:
-                            size_mb = size_value
-                except (ValueError, TypeError):
-                    logger.debug(f"Could not parse size string: {size_str}")
+                    # Look for size patterns in title and description
+                    description = entry.get('description', '')
+                    search_text = f"{title} {description}"
+                    
+                    size_patterns = [
+                        r'(\d+\.?\d*)\s*GiB',
+                        r'(\d+\.?\d*)\s*MiB', 
+                        r'(\d+\.?\d*)\s*GB',
+                        r'(\d+\.?\d*)\s*MB',
+                        r'(\d+\.?\d*)\s*TiB',
+                        r'(\d+\.?\d*)\s*TB',
+                        r'(\d+\.?\d*)GiB',
+                        r'(\d+\.?\d*)MiB',
+                        r'(\d+\.?\d*)GB',
+                        r'(\d+\.?\d*)MB'
+                    ]
+                    
+                    for pattern in size_patterns:
+                        match = re.search(pattern, search_text, re.IGNORECASE)
+                        if match:
+                            size_value = float(match.group(1))
+                            unit = match.group(0)[len(match.group(1)):].strip().upper()
+                            if unit in ['GB', 'GIB']:
+                                size_mb = size_value * 1024
+                            elif unit in ['TB', 'TIB']:
+                                size_mb = size_value * 1024 * 1024
+                            else:  # MB, MiB
+                                size_mb = size_value
+                            break
+                else:
+                    # Parse size string (e.g., "386.2 MiB" -> 386.2)
+                    try:
+                        import re
+                        size_match = re.search(r'(\d+\.?\d*)\s*(GB|MB|GiB|MiB|TB|TiB)', size_str, re.IGNORECASE)
+                        if size_match:
+                            size_value = float(size_match.group(1))
+                            unit = size_match.group(2).upper()
+                            if unit in ['GB', 'GIB']:
+                                size_mb = size_value * 1024
+                            elif unit in ['TB', 'TIB']:
+                                size_mb = size_value * 1024 * 1024
+                            else:  # MB, MiB
+                                size_mb = size_value
+                    except (ValueError, TypeError):
+                        logger.debug(f"Could not parse size string: {size_str}")
             
             if size_mb > 0 and size_mb > rule.max_size_mb:
                 logger.debug(f"Entry {title} exceeds size limit: {size_mb}MB > {rule.max_size_mb}MB")
@@ -206,199 +231,50 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
         # Check time filter
         if rule.download_after:
             try:
-                # Try to get published date from multiple sources
-                published = None
+                # Extract and format the published date using the same logic as the preview endpoint
+                raw_published = entry.get('published', '')
                 
-                # Method 1: Standard RSS published field
-                if entry.get('published'):
-                    published = entry.get('published')
-                
-                # Method 2: Mikan-specific nested torrent pubDate field
-                # Feedparser handles namespaces by prefixing with namespace name
-                # For Mikan's namespace "https://mikan.tangbai.cc/0.1/", feedparser might use different patterns
-                elif hasattr(entry, 'torrent_pubdate'):
-                    published = entry.torrent_pubdate
-                elif 'torrent_pubdate' in entry:
-                    published = entry['torrent_pubdate']
-                # Try common feedparser namespace patterns for Mikan
-                elif hasattr(entry, 'mikan_pubdate'):
-                    published = entry.mikan_pubdate
-                elif 'mikan_pubdate' in entry:
-                    published = entry['mikan_pubdate']
-                
-                # Method 3: Check for Mikan's torrent namespace pubDate
-                # Based on the XML structure: <torrent xmlns="https://mikan.tangbai.cc/0.1/"><pubDate>...</pubDate></torrent>
-                # Feedparser should parse this as a namespaced element
-                if not published:
-                    # Try accessing the torrent namespace directly
-                    # Feedparser often creates attributes like: entry.torrent_pubdate or similar
-                    torrent_date_fields = [
-                        'torrent_pubdate',
-                        'torrent_pubDate', 
-                        'mikan_pubdate',
-                        'mikan_pubDate',
-                        'pubdate',
-                        'pubDate'
-                    ]
-                    
-                    for field in torrent_date_fields:
-                        # Try as attribute
-                        if hasattr(entry, field):
-                            value = getattr(entry, field)
-                            if value and isinstance(value, str):
-                                published = value
-                                logger.debug(f"Found date in attribute {field}: {published}")
-                                break
-                        # Try as dictionary key
-                        elif field in entry:
-                            value = entry[field]
-                            if value and isinstance(value, str):
-                                published = value
-                                logger.debug(f"Found date in key {field}: {published}")
-                                break
-                
-                # Method 4: Try to access feedparser's namespace handling
-                # Feedparser stores namespaced elements in a special way
-                if not published:
-                    # Check if feedparser parsed the torrent namespace
-                    # It might be stored as a nested dictionary or with namespace prefixes
-                    try:
-                        # Method 4a: Check for namespace-prefixed keys in the entry
-                        for key in entry.keys():
-                            if 'torrent' in key.lower() and isinstance(entry[key], dict):
-                                # Found a torrent namespace dict, look for pubDate inside
-                                torrent_data = entry[key]
-                                if 'pubdate' in torrent_data or 'pubDate' in torrent_data:
-                                    published = torrent_data.get('pubdate') or torrent_data.get('pubDate')
-                                    logger.debug(f"Found date in torrent namespace dict: {published}")
+                # If no standard published field, try to extract from Mikan's torrent namespace
+                if not raw_published:
+                    # Try to find Mikan's nested torrent pubDate
+                    # Check all entry fields for date information
+                    for key, value in entry.items():
+                        if isinstance(value, str) and ('2025' in value or '2024' in value) and 'T' in value:
+                            raw_published = value
+                            logger.debug(f"Found date in {key}: {raw_published}")
+                            break
+                        elif isinstance(value, dict):
+                            for sub_key, sub_value in value.items():
+                                if isinstance(sub_value, str) and ('2025' in sub_value or '2024' in sub_value):
+                                    raw_published = sub_value
+                                    logger.debug(f"Found date in nested {key}.{sub_key}: {raw_published}")
                                     break
-                        
-                        # Method 4b: Check for direct namespace URL keys
-                        if not published:
-                            namespace_url = "https://mikan.tangbai.cc/0.1/"
-                            if namespace_url in entry:
-                                ns_data = entry[namespace_url]
-                                if isinstance(ns_data, dict) and ('pubdate' in ns_data or 'pubDate' in ns_data):
-                                    published = ns_data.get('pubdate') or ns_data.get('pubDate')
-                                    logger.debug(f"Found date in namespace URL key: {published}")
-                        
-                        # Method 4c: Comprehensive search through all entry data
-                        if not published:
-                            logger.debug(f"DEBUG: Searching all entry data for date...")
-                            logger.debug(f"DEBUG: Entry keys: {list(entry.keys())}")
-                            
-                            # First, let's see what feedparser actually parsed - show ALL entry data
-                            for key, value in entry.items():
-                                logger.debug(f"DEBUG: Entry[{key}] = {repr(value)} (type: {type(value)})")
-                            
-                            # Search through all keys and attributes for any date-like content
-                            all_fields = list(entry.keys()) + [attr for attr in dir(entry) if not attr.startswith('_') and not callable(getattr(entry, attr, None))]
-                            
-                            for field in all_fields:
-                                try:
-                                    if field in entry:
-                                        value = entry[field]
-                                    else:
-                                        value = getattr(entry, field, None)
-                                    
-                                    # Check if this field contains a date
-                                    if value and isinstance(value, str):
-                                        if ('2025' in value or '2024' in value) and ('T' in value or '-' in value):
-                                            published = value
-                                            logger.debug(f"Found potential date in {field}: {published}")
-                                            break
-                                    # Check if it's a nested structure (dict)
-                                    elif isinstance(value, dict):
-                                        for sub_key, sub_value in value.items():
-                                            if isinstance(sub_value, str) and ('2025' in sub_value or '2024' in sub_value):
-                                                published = sub_value
-                                                logger.debug(f"Found date in nested {field}.{sub_key}: {published}")
-                                                break
-                                        if published:
-                                            break
-                                    # Check if it's a list of structures
-                                    elif isinstance(value, list):
-                                        for i, item in enumerate(value):
-                                            if isinstance(item, dict):
-                                                for sub_key, sub_value in item.items():
-                                                    if isinstance(sub_value, str) and ('2025' in sub_value or '2024' in sub_value):
-                                                        published = sub_value
-                                                        logger.debug(f"Found date in list {field}[{i}].{sub_key}: {published}")
-                                                        break
-                                                if published:
-                                                    break
-                                            elif isinstance(item, str) and ('2025' in item or '2024' in item):
-                                                published = item
-                                                logger.debug(f"Found date in list {field}[{i}]: {published}")
-                                                break
-                                        if published:
-                                            break
-                                except:
-                                    continue
-                            
-                            # Method 4d: Check if the date is embedded in the title or other fields
-                            if not published:
-                                # Sometimes the date might be in the title or description
-                                import re
-                                date_pattern = r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?)'
-                                
-                                # Check title
-                                title_match = re.search(date_pattern, title)
-                                if title_match:
-                                    published = title_match.group(1)
-                                    logger.debug(f"Found date in title: {published}")
-                                
-                                # Check description
-                                if not published:
-                                    description = entry.get('description', '') or entry.get('summary', '')
-                                    desc_match = re.search(date_pattern, description)
-                                    if desc_match:
-                                        published = desc_match.group(1)
-                                        logger.debug(f"Found date in description: {published}")
-                    except Exception as e:
-                        logger.debug(f"Error in namespace search: {e}")
+                            if raw_published:
+                                break
                 
-                if published:
-                    # Try multiple date formats including Mikan's ISO format
+                if raw_published:
+                    # Use the same date parsing logic as the main.py format_published_date function
+                    parsed_date = None
                     date_formats = [
-                        '%Y-%m-%dT%H:%M:%S.%f',      # Mikan format: 2025-07-10T00:01:54.535937
-                        '%Y-%m-%dT%H:%M:%S',         # ISO format without microseconds
-                        '%a, %d %b %Y %H:%M:%S %z',  # RFC 2822 with timezone
-                        '%a, %d %b %Y %H:%M:%S',     # RFC 2822 without timezone
-                        '%Y-%m-%d %H:%M:%S',         # Simple ISO format
-                        '%Y-%m-%dT%H:%M:%S%z',       # ISO with timezone
-                        '%Y-%m-%dT%H:%M:%SZ'         # ISO UTC
+                        '%a, %d %b %Y %H:%M:%S %z',      # RFC 2822 with timezone
+                        '%a, %d %b %Y %H:%M:%S',         # RFC 2822 without timezone
+                        '%Y-%m-%dT%H:%M:%S.%f',          # Mikan ISO format with microseconds
+                        '%Y-%m-%dT%H:%M:%S',             # ISO format without microseconds
+                        '%Y-%m-%d %H:%M:%S',             # Simple format
+                        '%Y-%m-%dT%H:%M:%S%z',           # ISO with timezone
+                        '%Y-%m-%dT%H:%M:%SZ'             # ISO UTC
                     ]
                     
-                    # Special handling for Mikan's microsecond format
-                    # Python's %f expects exactly 6 digits, but Mikan might have variable digits
-                    if '.' in published and 'T' in published:
-                        # Try to normalize the microseconds to 6 digits
-                        try:
-                            parts = published.split('.')
-                            if len(parts) == 2:
-                                date_part = parts[0]
-                                microsec_part = parts[1]
-                                # Pad or truncate to 6 digits
-                                if len(microsec_part) < 6:
-                                    microsec_part = microsec_part.ljust(6, '0')
-                                elif len(microsec_part) > 6:
-                                    microsec_part = microsec_part[:6]
-                                normalized_date = f"{date_part}.{microsec_part}"
-                                logger.debug(f"Normalized date: {published} -> {normalized_date}")
-                                published = normalized_date
-                        except Exception as e:
-                            logger.debug(f"Error normalizing date: {e}")
-                    
-                    entry_date = None
                     for fmt in date_formats:
                         try:
-                            entry_date = datetime.datetime.strptime(published, fmt)
+                            parsed_date = datetime.datetime.strptime(raw_published, fmt)
+                            if parsed_date.tzinfo is None:
+                                parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
                             break
                         except ValueError:
                             continue
                     
-                    if entry_date:
+                    if parsed_date:
                         # Convert rule.download_after to datetime if it's a string
                         if isinstance(rule.download_after, str):
                             filter_date = datetime.datetime.fromisoformat(rule.download_after.replace('Z', '+00:00'))
@@ -406,21 +282,27 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
                             filter_date = rule.download_after
                         
                         # Make both dates timezone-aware or naive for comparison
-                        if entry_date.tzinfo is None and filter_date.tzinfo is not None:
-                            entry_date = entry_date.replace(tzinfo=datetime.timezone.utc)
-                        elif entry_date.tzinfo is not None and filter_date.tzinfo is None:
+                        if parsed_date.tzinfo is None and filter_date.tzinfo is not None:
+                            parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
+                        elif parsed_date.tzinfo is not None and filter_date.tzinfo is None:
                             filter_date = filter_date.replace(tzinfo=datetime.timezone.utc)
                         
-                        if entry_date < filter_date:
-                            logger.debug(f"Entry {title} is too old: {entry_date} < {filter_date}")
+                        # Apply the filter: exclude items older than the specified date
+                        if parsed_date < filter_date:
+                            logger.debug(f"Entry {title} is too old: {parsed_date} < {filter_date}")
                             return False
+                        else:
+                            logger.debug(f"Entry {title} passes date filter: {parsed_date} >= {filter_date}")
                     else:
-                        logger.debug(f"Could not parse date for entry: {title} - {published}")
-                        logger.debug(f"Tried formats: {date_formats}")
+                        logger.debug(f"Could not parse date for entry: {title} - {raw_published}")
+                        # If we can't parse the date, include the item (fail-safe)
                 else:
                     logger.debug(f"No published date found for entry: {title}")
+                    # If no date found, include the item (fail-safe)
+                    
             except Exception as e:
                 logger.debug(f"Error parsing date for entry {title}: {e}")
+                # If error occurs, include the item (fail-safe)
         
         # Check subtitle group filter (if not "全部")
         if rule.subtitle_group != "<全部>":
