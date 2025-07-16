@@ -5,13 +5,16 @@ type Language = 'zh' | 'en';
 interface LanguageContextType {
   language: Language;
   toggleLanguage: () => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 // Translation dictionaries
-const translations = {
+type TranslationKey = string;
+type TranslationDict = Record<TranslationKey, string>;
+
+const translations: Record<Language, TranslationDict> = {
   zh: {
     // Header
     'app.title': '自动下载 (作品监控列表)',
@@ -205,7 +208,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string, params?: Record<string, string | number>): string => {
-    let text = translations[language][key] || key;
+    let text = (translations[language] as Record<string, string>)[key] || key;
     
     // Replace parameters in the text
     if (params) {
