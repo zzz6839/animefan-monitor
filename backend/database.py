@@ -2,6 +2,10 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import datetime
+import os
+
+# Ensure data directory exists
+os.makedirs("./data", exist_ok=True)
 
 DATABASE_URL = "sqlite:///./data/autodownload.db"
 
@@ -26,6 +30,8 @@ class Rule(Base):
     download_after = Column(DateTime, nullable=True)
     download_latest = Column(Boolean, default=False)
     max_size_mb = Column(Integer, nullable=True)
+    auto_create_tasks = Column(Boolean, default=True)
+    monitor_interval = Column(Integer, default=10)  # minutes
 
 class Aria2Config(Base):
     __tablename__ = "aria2_config"

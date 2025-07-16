@@ -4,6 +4,8 @@
 
 This is an interactive anime auto download monitor to schedule monitor feed, send new task via RPC to remote downloader once rss feed updated.
 
+enhanced design for mikan and nyaa.
+
 ## Deployment
 
 The recommended way to deploy this application is with Docker Compose.
@@ -24,6 +26,8 @@ The recommended way to deploy this application is with Docker Compose.
 **免责声明:** 本项目由 AI 编程助手协助生成。虽然代码已经过审查，但可能包含错误或不一致之处。
 
 这是一个交互式的动漫自动下载监视器，用于安排监视 RSS 源，并在 RSS 源更新后通过 RPC 将新任务发送到远程下载器。
+
+增强了 mikan 和 nyaa 的设计。
 
 ## 部署
 

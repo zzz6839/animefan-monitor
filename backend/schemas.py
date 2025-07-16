@@ -11,6 +11,8 @@ class RuleBase(BaseModel):
     download_after: Optional[datetime.datetime] = None
     download_latest: bool = False
     max_size_mb: Optional[int] = None
+    auto_create_tasks: bool = True
+    monitor_interval: int = 10  # minutes
 
 class RuleCreate(RuleBase):
     pass
@@ -39,3 +41,14 @@ class Aria2Config(Aria2ConfigBase):
 
     class Config:
         from_attributes = True
+
+class RSSItem(BaseModel):
+    title: str
+    link: str
+    published: str
+    size: str
+    subtitle_group: str
+    task_exists: bool = False
+
+class RSSPreviewRequest(BaseModel):
+    rss_url: str
