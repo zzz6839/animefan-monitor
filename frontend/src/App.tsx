@@ -18,7 +18,8 @@ import {
   Snackbar,
   IconButton,
   TableSortLabel,
-  Chip
+  Chip,
+  Grid
 } from '@mui/material';
 import { Brightness4, Brightness7, Language as LanguageIcon } from '@mui/icons-material';
 import { useTheme } from './contexts/ThemeContext';
@@ -352,277 +353,326 @@ function App() {
 
         </Box>
 
-        <TableContainer component={Paper} sx={{ mb: 2 }}>
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox" sx={{ width: 50 }}>
-                  <Checkbox
-                    indeterminate={selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length}
-                    checked={sortedRules.length > 0 && selectedRuleIds.length === sortedRules.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedRuleIds(sortedRules.map(r => r.id));
-                      } else {
-                        setSelectedRuleIds([]);
-                      }
-                    }}
-                    title={t('table.select_all')}
-                  />
-                </TableCell>
-                <TableCell sx={{ width: 80 }}>
-                  <TableSortLabel
-                    active={sortBy === 'enabled'}
-                    direction={sortBy === 'enabled' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('enabled')}
-                  >
-                    {t('table.enabled')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sx={{ minWidth: 120 }}>
-                  <TableSortLabel
-                    active={sortBy === 'name'}
-                    direction={sortBy === 'name' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('name')}
-                  >
-                    {t('table.name')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sx={{ width: 100 }}>
-                  <TableSortLabel
-                    active={sortBy === 'subtitle_group'}
-                    direction={sortBy === 'subtitle_group' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('subtitle_group')}
-                  >
-                    {t('table.subtitle_group')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sx={{ minWidth: 300 }}>{t('table.rss_url')}</TableCell>
-                <TableCell sx={{ width: 100 }}>
-                  <TableSortLabel
-                    active={sortBy === 'max_tasks'}
-                    direction={sortBy === 'max_tasks' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('max_tasks')}
-                  >
-                    {t('table.max_tasks')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sx={{ width: 150 }}>
-                  <TableSortLabel
-                    active={sortBy === 'creation_time'}
-                    direction={sortBy === 'creation_time' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('creation_time')}
-                  >
-                    {t('table.creation_time')}
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell sx={{ width: 150 }}>
-                  <TableSortLabel
-                    active={sortBy === 'last_update_time'}
-                    direction={sortBy === 'last_update_time' ? sortOrder : 'asc'}
-                    onClick={() => handleSort('last_update_time')}
-                  >
-                    {t('table.last_update')}
-                  </TableSortLabel>
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {sortedRules.map(rule => (
-                <TableRow
-                  key={rule.id}
-                  hover
-                  selected={selectedRule?.id === rule.id}
-                  onClick={() => handleRowClick(rule)}
-                  sx={{
-                    cursor: 'pointer',
-                    '&.Mui-selected': {
-                      backgroundColor: 'action.selected',
-                    }
-                  }}
-                >
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedRuleIds.includes(rule.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleRuleSelect(rule.id, e.target.checked);
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Checkbox
-                      checked={rule.enabled}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleRuleToggle(rule.id);
-                      }}
-                      color="success"
-                    />
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: rule.enabled ? 'bold' : 'normal' }}>
-                    {rule.name}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color={rule.subtitle_group === "<全部>" ? "text.secondary" : "text.primary"}>
-                      {rule.subtitle_group === "<全部>" ? t('status.all_groups') : rule.subtitle_group}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography
-                      variant="body2"
+        {/* Two-panel layout: Table on left, Preview on right */}
+        <Grid container spacing={3}>
+          {/* Left Panel - Main Table */}
+          <Grid item xs={12} md={showPreview ? 8 : 12}>
+            <TableContainer component={Paper} sx={{ mb: 2 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell
+                      padding="checkbox"
                       sx={{
-                        maxWidth: 300,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
+                        width: 50,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed'
+                      }}
+                    >
+                      <Checkbox
+                        indeterminate={selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length}
+                        checked={sortedRules.length > 0 && selectedRuleIds.length === sortedRules.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRuleIds(sortedRules.map(r => r.id));
+                          } else {
+                            setSelectedRuleIds([]);
+                          }
+                        }}
+                        title={t('table.select_all')}
+                      />
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 80,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
                         whiteSpace: 'nowrap'
                       }}
-                      title={rule.rss_url}
                     >
-                      {rule.rss_url}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">{rule.max_tasks}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(rule.creation_time)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatTime(rule.creation_time)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    {rule.last_update_time ? (
-                      <>
+                      <TableSortLabel
+                        active={sortBy === 'enabled'}
+                        direction={sortBy === 'enabled' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('enabled')}
+                      >
+                        {t('table.enabled')}
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        minWidth: 120,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'name'}
+                        direction={sortBy === 'name' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('name')}
+                      >
+                        {t('table.name')}
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 100,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'subtitle_group'}
+                        direction={sortBy === 'subtitle_group' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('subtitle_group')}
+                      >
+                        {t('table.subtitle_group')}
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        minWidth: showPreview ? 200 : 300,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {t('table.rss_url')}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 100,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'max_tasks'}
+                        direction={sortBy === 'max_tasks' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('max_tasks')}
+                      >
+                        {t('table.max_tasks')}
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 150,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'creation_time'}
+                        direction={sortBy === 'creation_time' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('creation_time')}
+                      >
+                        {t('table.creation_time')}
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 150,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'last_update_time'}
+                        direction={sortBy === 'last_update_time' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('last_update_time')}
+                      >
+                        {t('table.last_update')}
+                      </TableSortLabel>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {sortedRules.map(rule => (
+                    <TableRow
+                      key={rule.id}
+                      hover
+                      selected={selectedRule?.id === rule.id}
+                      onClick={() => handleRowClick(rule)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&.Mui-selected': {
+                          backgroundColor: 'action.selected',
+                        }
+                      }}
+                    >
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={selectedRuleIds.includes(rule.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleRuleSelect(rule.id, e.target.checked);
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={rule.enabled}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleRuleToggle(rule.id);
+                          }}
+                          color="success"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: rule.enabled ? 'bold' : 'normal' }}>
+                        {rule.name}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color={rule.subtitle_group === "<全部>" ? "text.secondary" : "text.primary"}>
+                          {rule.subtitle_group === "<全部>" ? t('status.all_groups') : rule.subtitle_group}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            maxWidth: showPreview ? 200 : 300,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={rule.rss_url}
+                        >
+                          {rule.rss_url}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">{rule.max_tasks}</TableCell>
+                      <TableCell>
                         <Typography variant="body2">
-                          {formatDate(rule.last_update_time)}
+                          {formatDate(rule.creation_time)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {formatTime(rule.last_update_time)}
+                          {formatTime(rule.creation_time)}
                         </Typography>
-                      </>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">{t('status.unknown')}</Typography>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box sx={{ mt: 2 }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showPreview}
-                onChange={(e) => handlePreviewToggle(e.target.checked)}
-              />
-            }
-            label={t('preview.label')}
-          />
-        </Box>
-
-        {showPreview && selectedRule && (
-          <Box sx={{ mt: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="h6">
-                  {t('preview.title')}: {selectedRule.name}
-                </Typography>
-                <Chip
-                  size="small"
-                  color="primary"
-                  label={t('preview.filtered')}
-                  sx={{ fontSize: '0.7rem' }}
-                />
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                {previewItems.length > 0 ? t('preview.count', { count: previewItems.length }) : t('preview.no_items')}
-              </Typography>
-            </Box>
-
-            {previewItems.length > 0 ? (
-              <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
-                <Table size="small" stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ minWidth: 400 }}>{t('preview.table.title')}</TableCell>
-                      <TableCell sx={{ width: 100 }}>{t('preview.table.task_status')}</TableCell>
-                      <TableCell sx={{ width: 80 }}>{t('preview.table.type')}</TableCell>
-                      <TableCell sx={{ width: 120 }}>{t('preview.table.subtitle_group')}</TableCell>
-                      <TableCell sx={{ width: 100 }}>{t('preview.table.size')}</TableCell>
-                      <TableCell sx={{ width: 150 }}>{t('preview.table.publish_time')}</TableCell>
+                      </TableCell>
+                      <TableCell>
+                        {rule.last_update_time ? (
+                          <>
+                            <Typography variant="body2">
+                              {formatDate(rule.last_update_time)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatTime(rule.last_update_time)}
+                            </Typography>
+                          </>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">{t('status.unknown')}</Typography>
+                        )}
+                      </TableCell>
                     </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {previewItems.map((item, index) => (
-                      <TableRow key={index} hover>
-                        <TableCell>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              lineHeight: 1.4
-                            }}
-                            title={item.title}
-                          >
-                            {item.title}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            variant="body2"
-                            color={item.task_exists ? "success.main" : "text.secondary"}
-                            sx={{ fontWeight: item.task_exists ? 'bold' : 'normal' }}
-                          >
-                            {item.task_exists ? t('status.exists') : t('status.new_task')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="primary">
-                            {t('status.video')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            variant="body2"
-                            color={item.subtitle_group === "未知字幕组" ? "text.secondary" : "text.primary"}
-                          >
-                            {item.subtitle_group === "未知字幕组" ? t('status.unknown_group') : item.subtitle_group}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {item.size}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {item.published && item.published !== "未知时间" ?
-                              formatDate(item.published) :
-                              (item.published === "未知时间" ? t('status.unknown_time') : item.published)
-                            }
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body1" color="text.secondary">
-                  {selectedRule ? t('preview.no_rule') : t('preview.select_rule')}
-                </Typography>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {/* Preview toggle checkbox - moved to left panel */}
+            <Box sx={{ mt: 2 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showPreview}
+                    onChange={(e) => handlePreviewToggle(e.target.checked)}
+                  />
+                }
+                label={t('preview.label')}
+              />
+            </Box>
+          </Grid>
+
+          {/* Right Panel - Preview */}
+          {showPreview && (
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 2, height: '600px', overflow: 'auto', position: 'sticky', top: 16 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">
+                    {t('preview.title')}
+                  </Typography>
+                  {selectedRule && (
+                    <Chip
+                      size="small"
+                      color="primary"
+                      label={t('preview.filtered')}
+                      sx={{ fontSize: '0.7rem', ml: 1 }}
+                    />
+                  )}
+                </Box>
+
+                {selectedRule ? (
+                  <>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                      {selectedRule.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                      {previewItems.length > 0 ? t('preview.count', { count: previewItems.length }) : t('preview.no_items')}
+                    </Typography>
+
+                    {previewItems.length > 0 ? (
+                      <Box sx={{ maxHeight: '500px', overflow: 'auto' }}>
+                        {previewItems.map((item, index) => (
+                          <Box key={index} sx={{ mb: 2, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 'bold',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                mb: 1
+                              }}
+                              title={item.title}
+                            >
+                              {item.title}
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                              <Typography variant="caption" color="text.secondary">
+                                {t('preview.table.subtitle_group')}: {item.subtitle_group === "未知字幕组" ? t('status.unknown_group') : item.subtitle_group}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {t('preview.table.size')}: {item.size}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {t('preview.table.task_status')}: {item.task_exists ? t('status.exists') : t('status.new_task')}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {t('preview.table.publish_time')}: {item.published && item.published !== "未知时间" ?
+                                  formatDate(item.published) :
+                                  (item.published === "未知时间" ? t('status.unknown_time') : item.published)
+                                }
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {t('preview.no_items')}
+                        </Typography>
+                      </Box>
+                    )}
+                  </>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('preview.select_rule')}
+                    </Typography>
+                  </Box>
+                )}
               </Paper>
-            )}
-          </Box>
-        )}
+            </Grid>
+          )}
+        </Grid>
 
         <EditRule
           open={editRuleOpen}

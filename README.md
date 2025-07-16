@@ -71,5 +71,3 @@ The recommended way to deploy this application is with Docker Compose.
 - [ ] **Main Page Layout**
   - BUG(low): Better main page layout optimization
 
-- [ ] **UTC+0 Timezone Display**
-  - BUG(low): UTC+0 timezone display on main page 

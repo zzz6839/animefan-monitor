@@ -81,7 +81,22 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
         setEnabled(rule.enabled);
         setMaxTasks(rule.max_tasks);
         setAutoCreateTasks(rule.auto_create_tasks ?? true);
-        setDownloadAfter(rule.download_after || '');
+
+        // Convert download_after from ISO format to datetime-local format
+        if (rule.download_after) {
+          try {
+            const date = new Date(rule.download_after);
+            // Convert to local time and format for datetime-local input (YYYY-MM-DDTHH:mm)
+            const localISOTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            setDownloadAfter(localISOTime);
+          } catch (error) {
+            console.error('Error parsing download_after date:', error);
+            setDownloadAfter('');
+          }
+        } else {
+          setDownloadAfter('');
+        }
+
         setDownloadLatest(rule.download_latest ?? false);
         setMaxSizeMb(rule.max_size_mb?.toString() || '');
         setMonitorInterval(rule.monitor_interval ?? 10);
@@ -306,13 +321,27 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
       }
     }
 
+    // Convert download_after from local datetime-local format to UTC ISO format
+    let downloadAfterUTC = null;
+    if (downloadAfter) {
+      try {
+        // The datetime-local input gives us a local time string (YYYY-MM-DDTHH:mm)
+        // We need to convert it to UTC for the backend
+        const localDate = new Date(downloadAfter);
+        downloadAfterUTC = localDate.toISOString();
+      } catch (error) {
+        console.error('Error converting download_after to UTC:', error);
+        downloadAfterUTC = null;
+      }
+    }
+
     const ruleData = {
       name,
       rss_url: rssUrl,
       enabled,
       max_tasks: maxTasks,
       auto_create_tasks: autoCreateTasks,
-      download_after: downloadAfter || null,
+      download_after: downloadAfterUTC,
       download_latest: downloadLatest,
       max_size_mb: maxSizeMb ? parseInt(maxSizeMb) : null,
       monitor_interval: monitorInterval,
