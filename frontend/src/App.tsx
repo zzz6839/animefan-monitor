@@ -36,7 +36,7 @@ interface Rule {
   creation_time: string;
   last_update_time: string | null;
   subtitle_group: string;
-  download_after?: string | null;
+  download_after?: string;
   download_latest?: boolean;
   max_size_mb?: number | null;
   auto_create_tasks?: boolean;
@@ -108,8 +108,8 @@ function App() {
         bValue = bValue.toLowerCase();
       }
       
-      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      if (aValue! < bValue!) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue! > bValue!) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
   }, [rules, sortBy, sortOrder]);

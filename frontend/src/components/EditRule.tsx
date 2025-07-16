@@ -34,7 +34,7 @@ interface Rule {
   subtitle_group: string;
   download_after?: string;
   download_latest?: boolean;
-  max_size_mb?: number;
+  max_size_mb?: number | null;
   auto_create_tasks?: boolean;
   monitor_interval?: number;
 }
