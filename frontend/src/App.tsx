@@ -57,6 +57,7 @@ function App() {
   const { darkMode, toggleDarkMode } = useTheme();
 
   useEffect(() => {
+    console.log('App starting, API_BASE:', API_BASE);
     fetchRules();
   }, []);
 
@@ -157,27 +158,34 @@ function App() {
 
   const fetchPreview = async (rssUrl: string, ruleId?: number) => {
     try {
+      console.log('Fetching preview for:', { rssUrl, ruleId });
       let response;
       if (ruleId) {
         // Use filtered preview when a rule is selected
+        console.log('Using filtered preview with rule ID:', ruleId);
         response = await axios.post(`${API_BASE}/rss/preview_filtered`, {
           rss_url: rssUrl,
           rule_id: ruleId
         });
       } else {
         // Use unfiltered preview as fallback
+        console.log('Using unfiltered preview');
         response = await axios.post(`${API_BASE}/rss/preview`, { rss_url: rssUrl });
       }
+      console.log('Preview response:', response.data);
       setPreviewItems(response.data);
     } catch (error) {
       console.error('Error fetching preview:', error);
       showSnackbar('获取预览失败', 'error');
+      setPreviewItems([]);
     }
   };
 
   const handlePreviewToggle = (checked: boolean) => {
+    console.log('Preview toggle:', { checked, selectedRule });
     setShowPreview(checked);
     if (checked && selectedRule) {
+      console.log('Fetching preview for selected rule:', selectedRule);
       fetchPreview(selectedRule.rss_url, selectedRule.id);
     } else {
       setPreviewItems([]);
@@ -185,15 +193,19 @@ function App() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-          自动下载 (作品监控列表)
-        </Typography>
+    <Box sx={{ minHeight: '100vh', position: 'relative' }}>
+      {/* Dark/Light mode toggle - fixed to top right */}
+      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
         <IconButton onClick={toggleDarkMode} color="inherit">
           {darkMode ? <Brightness7 /> : <Brightness4 />}
         </IconButton>
       </Box>
+
+      {/* Main content starting from top left */}
+      <Container maxWidth="xl" sx={{ pt: 2, pb: 2, pl: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 3 }}>
+          自动下载 (作品监控列表)
+        </Typography>
 
       <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         <Button
@@ -478,7 +490,8 @@ function App() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container>
+      </Container>
+    </Box>
   );
 }
 
