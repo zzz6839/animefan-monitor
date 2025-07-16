@@ -1,9 +1,11 @@
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
-from .database import SessionLocal, engine
-from .scheduler import scheduler
+import crud
+import models
+import schemas
+from database import SessionLocal, engine
+from scheduler import scheduler
 
 models.Base.metadata.create_all(bind=engine)
 

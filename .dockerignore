@@ -2,5 +2,6 @@
 **/.gitignore
 **/.dockerignore
 prompt/
+error.log
 **/node_modules
 **/__pycache__
