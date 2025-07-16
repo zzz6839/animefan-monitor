@@ -62,7 +62,7 @@ function App() {
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [aria2SettingsOpen, setAria2SettingsOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
-  
+
   // Sorting state
   const [sortBy, setSortBy] = useState<keyof Rule>(() => {
     return (localStorage.getItem('tableSortBy') as keyof Rule) || 'creation_time';
@@ -70,7 +70,7 @@ function App() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
     return (localStorage.getItem('tableSortOrder') as 'asc' | 'desc') || 'desc';
   });
-  
+
   const { darkMode, toggleDarkMode } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
 
@@ -90,24 +90,24 @@ function App() {
     return [...rules].sort((a, b) => {
       let aValue = a[sortBy];
       let bValue = b[sortBy];
-      
+
       // Handle null values
       if (aValue === null && bValue === null) return 0;
       if (aValue === null) return sortOrder === 'asc' ? -1 : 1;
       if (bValue === null) return sortOrder === 'asc' ? 1 : -1;
-      
+
       // Handle date strings
       if (sortBy === 'creation_time' || sortBy === 'last_update_time') {
         aValue = new Date(aValue as string).getTime();
         bValue = new Date(bValue as string).getTime();
       }
-      
+
       // Handle string comparison
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
       }
-      
+
       if (aValue! < bValue!) return sortOrder === 'asc' ? -1 : 1;
       if (aValue! > bValue!) return sortOrder === 'asc' ? 1 : -1;
       return 0;
@@ -222,7 +222,7 @@ function App() {
     try {
       console.log('Fetching preview for:', { rssUrl, ruleId });
       let response;
-      
+
       if (ruleId) {
         // Try filtered preview first - this should match what the scheduler will actually download
         console.log('Using filtered preview with rule ID:', ruleId);
@@ -233,7 +233,7 @@ function App() {
           });
           console.log('Filtered preview response:', response.data);
           setPreviewItems(response.data);
-          
+
           if (response.data.length >= 0) {
             console.log(`Filtered preview loaded: ${response.data.length} items match the rule criteria`);
           }
@@ -243,13 +243,13 @@ function App() {
           // Fall through to unfiltered preview
         }
       }
-      
+
       // Fallback: Use unfiltered preview
       console.log('Using unfiltered preview');
       response = await axios.post(`${API_BASE}/rss/preview`, { rss_url: rssUrl });
       console.log('Unfiltered preview response:', response.data);
       setPreviewItems(response.data);
-      
+
     } catch (error) {
       console.error('Error fetching preview:', error);
       showSnackbar(t('message.preview_error'), 'error');
@@ -271,15 +271,33 @@ function App() {
   return (
     <Box sx={{ minHeight: '100vh', position: 'relative' }}>
       {/* Language and Dark/Light mode toggles - fixed to top right */}
-      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 1000, display: 'flex', gap: 1 }}>
+      <Box sx={{
+        position: 'fixed',
+        top: 16,
+        right: 16,
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1
+      }}>
         <Chip
           icon={<LanguageIcon />}
           label={language === 'zh' ? '中/EN' : 'EN/中'}
           onClick={toggleLanguage}
           variant="outlined"
-          sx={{ cursor: 'pointer' }}
+          sx={{
+            cursor: 'pointer',
+            height: 40  // Match IconButton height
+          }}
         />
-        <IconButton onClick={toggleDarkMode} color="inherit">
+        <IconButton
+          onClick={toggleDarkMode}
+          color="inherit"
+          sx={{
+            width: 40,
+            height: 40
+          }}
+        >
           {darkMode ? <Brightness7 /> : <Brightness4 />}
         </IconButton>
       </Box>
@@ -290,345 +308,345 @@ function App() {
           {t('app.title')}
         </Typography>
 
-      <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        <Button
-          variant="contained"
-          color="success"
-          onClick={handleRunRules}
-          disabled={selectedRuleIds.length === 0}
-        >
-          {t('button.run_rules')}
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleCreateRule}
-        >
-          {t('button.create_rule')}
-        </Button>
-        <Button
-          variant="contained"
-          color="info"
-          onClick={handleEditRule}
-          disabled={selectedRuleIds.length !== 1}
-        >
-          {t('button.edit_rule')}
-        </Button>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={handleDeleteRules}
-          disabled={selectedRuleIds.length === 0}
-        >
-          {t('button.delete_rules')}
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={() => setAria2SettingsOpen(true)}
-        >
-          {t('button.downloader_settings')}
-        </Button>
-      </Box>
+        <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={handleRunRules}
+            disabled={selectedRuleIds.length === 0}
+          >
+            {t('button.run_rules')}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleCreateRule}
+          >
+            {t('button.create_rule')}
+          </Button>
+          <Button
+            variant="contained"
+            color="info"
+            onClick={handleEditRule}
+            disabled={selectedRuleIds.length !== 1}
+          >
+            {t('button.edit_rule')}
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteRules}
+            disabled={selectedRuleIds.length === 0}
+          >
+            {t('button.delete_rules')}
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => setAria2SettingsOpen(true)}
+          >
+            {t('button.downloader_settings')}
+          </Button>
+        </Box>
 
-      <TableContainer component={Paper} sx={{ mb: 2 }}>
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox" sx={{ width: 50 }}>
-                <Checkbox
-                  indeterminate={selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length}
-                  checked={sortedRules.length > 0 && selectedRuleIds.length === sortedRules.length}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedRuleIds(sortedRules.map(r => r.id));
-                    } else {
-                      setSelectedRuleIds([]);
-                    }
-                  }}
-                  title={t('table.select_all')}
-                />
-              </TableCell>
-              <TableCell sx={{ width: 80 }}>
-                <TableSortLabel
-                  active={sortBy === 'enabled'}
-                  direction={sortBy === 'enabled' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('enabled')}
-                >
-                  {t('table.enabled')}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell sx={{ minWidth: 120 }}>
-                <TableSortLabel
-                  active={sortBy === 'name'}
-                  direction={sortBy === 'name' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('name')}
-                >
-                  {t('table.name')}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell sx={{ width: 100 }}>
-                <TableSortLabel
-                  active={sortBy === 'subtitle_group'}
-                  direction={sortBy === 'subtitle_group' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('subtitle_group')}
-                >
-                  {t('table.subtitle_group')}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell sx={{ minWidth: 300 }}>{t('table.rss_url')}</TableCell>
-              <TableCell sx={{ width: 100 }}>
-                <TableSortLabel
-                  active={sortBy === 'max_tasks'}
-                  direction={sortBy === 'max_tasks' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('max_tasks')}
-                >
-                  {t('table.max_tasks')}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell sx={{ width: 150 }}>
-                <TableSortLabel
-                  active={sortBy === 'creation_time'}
-                  direction={sortBy === 'creation_time' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('creation_time')}
-                >
-                  {t('table.creation_time')}
-                </TableSortLabel>
-              </TableCell>
-              <TableCell sx={{ width: 150 }}>
-                <TableSortLabel
-                  active={sortBy === 'last_update_time'}
-                  direction={sortBy === 'last_update_time' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('last_update_time')}
-                >
-                  {t('table.last_update')}
-                </TableSortLabel>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {sortedRules.map(rule => (
-              <TableRow
-                key={rule.id}
-                hover
-                selected={selectedRule?.id === rule.id}
-                onClick={() => handleRowClick(rule)}
-                sx={{
-                  cursor: 'pointer',
-                  '&.Mui-selected': {
-                    backgroundColor: 'action.selected',
-                  }
-                }}
-              >
-                <TableCell padding="checkbox">
+        <TableContainer component={Paper} sx={{ mb: 2 }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell padding="checkbox" sx={{ width: 50 }}>
                   <Checkbox
-                    checked={selectedRuleIds.includes(rule.id)}
+                    indeterminate={selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length}
+                    checked={sortedRules.length > 0 && selectedRuleIds.length === sortedRules.length}
                     onChange={(e) => {
-                      e.stopPropagation();
-                      handleRuleSelect(rule.id, e.target.checked);
+                      if (e.target.checked) {
+                        setSelectedRuleIds(sortedRules.map(r => r.id));
+                      } else {
+                        setSelectedRuleIds([]);
+                      }
                     }}
+                    title={t('table.select_all')}
                   />
                 </TableCell>
-                <TableCell>
-                  <Checkbox
-                    checked={rule.enabled}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleRuleToggle(rule.id);
-                    }}
-                    color="success"
-                  />
-                </TableCell>
-                <TableCell sx={{ fontWeight: rule.enabled ? 'bold' : 'normal' }}>
-                  {rule.name}
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color={rule.subtitle_group === "<全部>" ? "text.secondary" : "text.primary"}>
-                    {rule.subtitle_group === "<全部>" ? t('status.all_groups') : rule.subtitle_group}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      maxWidth: 300,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                    title={rule.rss_url}
+                <TableCell sx={{ width: 80 }}>
+                  <TableSortLabel
+                    active={sortBy === 'enabled'}
+                    direction={sortBy === 'enabled' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('enabled')}
                   >
-                    {rule.rss_url}
-                  </Typography>
+                    {t('table.enabled')}
+                  </TableSortLabel>
                 </TableCell>
-                <TableCell align="center">{rule.max_tasks}</TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {new Date(rule.creation_time).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(rule.creation_time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </Typography>
+                <TableCell sx={{ minWidth: 120 }}>
+                  <TableSortLabel
+                    active={sortBy === 'name'}
+                    direction={sortBy === 'name' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('name')}
+                  >
+                    {t('table.name')}
+                  </TableSortLabel>
                 </TableCell>
-                <TableCell>
-                  {rule.last_update_time ? (
-                    <>
-                      <Typography variant="body2">
-                        {new Date(rule.last_update_time).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(rule.last_update_time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">{t('status.unknown')}</Typography>
-                  )}
+                <TableCell sx={{ width: 100 }}>
+                  <TableSortLabel
+                    active={sortBy === 'subtitle_group'}
+                    direction={sortBy === 'subtitle_group' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('subtitle_group')}
+                  >
+                    {t('table.subtitle_group')}
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ minWidth: 300 }}>{t('table.rss_url')}</TableCell>
+                <TableCell sx={{ width: 100 }}>
+                  <TableSortLabel
+                    active={sortBy === 'max_tasks'}
+                    direction={sortBy === 'max_tasks' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('max_tasks')}
+                  >
+                    {t('table.max_tasks')}
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: 150 }}>
+                  <TableSortLabel
+                    active={sortBy === 'creation_time'}
+                    direction={sortBy === 'creation_time' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('creation_time')}
+                  >
+                    {t('table.creation_time')}
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell sx={{ width: 150 }}>
+                  <TableSortLabel
+                    active={sortBy === 'last_update_time'}
+                    direction={sortBy === 'last_update_time' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('last_update_time')}
+                  >
+                    {t('table.last_update')}
+                  </TableSortLabel>
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Box sx={{ mt: 2 }}>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={showPreview}
-              onChange={(e) => handlePreviewToggle(e.target.checked)}
-            />
-          }
-          label={t('preview.label')}
-        />
-      </Box>
-
-      {showPreview && selectedRule && (
-        <Box sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="h6">
-                {t('preview.title')}: {selectedRule.name}
-              </Typography>
-              <Chip 
-                size="small" 
-                color="primary" 
-                label={t('preview.filtered')} 
-                sx={{ fontSize: '0.7rem' }} 
-              />
-            </Box>
-            <Typography variant="body2" color="text.secondary">
-              {previewItems.length > 0 ? t('preview.count', { count: previewItems.length }) : t('preview.no_items')}
-            </Typography>
-          </Box>
-
-          {previewItems.length > 0 ? (
-            <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ minWidth: 400 }}>{t('preview.table.title')}</TableCell>
-                    <TableCell sx={{ width: 100 }}>{t('preview.table.task_status')}</TableCell>
-                    <TableCell sx={{ width: 80 }}>{t('preview.table.type')}</TableCell>
-                    <TableCell sx={{ width: 120 }}>{t('preview.table.subtitle_group')}</TableCell>
-                    <TableCell sx={{ width: 100 }}>{t('preview.table.size')}</TableCell>
-                    <TableCell sx={{ width: 150 }}>{t('preview.table.publish_time')}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {previewItems.map((item, index) => (
-                    <TableRow key={index} hover>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            lineHeight: 1.4
-                          }}
-                          title={item.title}
-                        >
-                          {item.title}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          color={item.task_exists ? "success.main" : "text.secondary"}
-                          sx={{ fontWeight: item.task_exists ? 'bold' : 'normal' }}
-                        >
-                          {item.task_exists ? t('status.exists') : t('status.new_task')}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="primary">
-                          {t('status.video')}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          color={item.subtitle_group === "未知字幕组" ? "text.secondary" : "text.primary"}
-                        >
-                          {item.subtitle_group === "未知字幕组" ? t('status.unknown_group') : item.subtitle_group}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
+            </TableHead>
+            <TableBody>
+              {sortedRules.map(rule => (
+                <TableRow
+                  key={rule.id}
+                  hover
+                  selected={selectedRule?.id === rule.id}
+                  onClick={() => handleRowClick(rule)}
+                  sx={{
+                    cursor: 'pointer',
+                    '&.Mui-selected': {
+                      backgroundColor: 'action.selected',
+                    }
+                  }}
+                >
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedRuleIds.includes(rule.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleRuleSelect(rule.id, e.target.checked);
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Checkbox
+                      checked={rule.enabled}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleRuleToggle(rule.id);
+                      }}
+                      color="success"
+                    />
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: rule.enabled ? 'bold' : 'normal' }}>
+                    {rule.name}
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color={rule.subtitle_group === "<全部>" ? "text.secondary" : "text.primary"}>
+                      {rule.subtitle_group === "<全部>" ? t('status.all_groups') : rule.subtitle_group}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        maxWidth: 300,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                      title={rule.rss_url}
+                    >
+                      {rule.rss_url}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">{rule.max_tasks}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {new Date(rule.creation_time).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(rule.creation_time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    {rule.last_update_time ? (
+                      <>
                         <Typography variant="body2">
-                          {item.size}
+                          {new Date(rule.last_update_time).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {item.published && item.published !== "未知时间" ?
-                            new Date(item.published).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US') :
-                            (item.published === "未知时间" ? t('status.unknown_time') : item.published)
-                          }
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(rule.last_update_time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                         </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
-            <Paper sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="body1" color="text.secondary">
-                {selectedRule ? t('preview.no_rule') : t('preview.select_rule')}
-              </Typography>
-            </Paper>
-          )}
+                      </>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">{t('status.unknown')}</Typography>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Box sx={{ mt: 2 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showPreview}
+                onChange={(e) => handlePreviewToggle(e.target.checked)}
+              />
+            }
+            label={t('preview.label')}
+          />
         </Box>
-      )}
 
-      <EditRule
-        open={editRuleOpen}
-        onClose={() => {
-          setEditRuleOpen(false);
-          setEditingRule(null);
-          fetchRules();
-        }}
-        rule={editingRule}
-      />
+        {showPreview && selectedRule && (
+          <Box sx={{ mt: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h6">
+                  {t('preview.title')}: {selectedRule.name}
+                </Typography>
+                <Chip
+                  size="small"
+                  color="primary"
+                  label={t('preview.filtered')}
+                  sx={{ fontSize: '0.7rem' }}
+                />
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                {previewItems.length > 0 ? t('preview.count', { count: previewItems.length }) : t('preview.no_items')}
+              </Typography>
+            </Box>
 
-      <Aria2Settings
-        open={aria2SettingsOpen}
-        onClose={() => setAria2SettingsOpen(false)}
-      />
+            {previewItems.length > 0 ? (
+              <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ minWidth: 400 }}>{t('preview.table.title')}</TableCell>
+                      <TableCell sx={{ width: 100 }}>{t('preview.table.task_status')}</TableCell>
+                      <TableCell sx={{ width: 80 }}>{t('preview.table.type')}</TableCell>
+                      <TableCell sx={{ width: 120 }}>{t('preview.table.subtitle_group')}</TableCell>
+                      <TableCell sx={{ width: 100 }}>{t('preview.table.size')}</TableCell>
+                      <TableCell sx={{ width: 150 }}>{t('preview.table.publish_time')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {previewItems.map((item, index) => (
+                      <TableRow key={index} hover>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              lineHeight: 1.4
+                            }}
+                            title={item.title}
+                          >
+                            {item.title}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            color={item.task_exists ? "success.main" : "text.secondary"}
+                            sx={{ fontWeight: item.task_exists ? 'bold' : 'normal' }}
+                          >
+                            {item.task_exists ? t('status.exists') : t('status.new_task')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="primary">
+                            {t('status.video')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            color={item.subtitle_group === "未知字幕组" ? "text.secondary" : "text.primary"}
+                          >
+                            {item.subtitle_group === "未知字幕组" ? t('status.unknown_group') : item.subtitle_group}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {item.size}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {item.published && item.published !== "未知时间" ?
+                              new Date(item.published).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US') :
+                              (item.published === "未知时间" ? t('status.unknown_time') : item.published)
+                            }
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  {selectedRule ? t('preview.no_rule') : t('preview.select_rule')}
+                </Typography>
+              </Paper>
+            )}
+          </Box>
+        )}
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert
+        <EditRule
+          open={editRuleOpen}
+          onClose={() => {
+            setEditRuleOpen(false);
+            setEditingRule(null);
+            fetchRules();
+          }}
+          rule={editingRule}
+        />
+
+        <Aria2Settings
+          open={aria2SettingsOpen}
+          onClose={() => setAria2SettingsOpen(false)}
+        />
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
           onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   );

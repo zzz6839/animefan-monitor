@@ -364,6 +364,8 @@ def check_rss_feeds():
                 
                 # Process entries (limit by max_tasks)
                 processed_count = 0
+                last_download_time = None
+                
                 for entry in feed.entries:
                     if processed_count >= rule.max_tasks:
                         logger.info(f"Reached max tasks limit ({rule.max_tasks}) for rule: {rule.name}")
@@ -386,6 +388,7 @@ def check_rss_feeds():
                             success = send_to_aria2(aria2_config, torrent_url, title)
                             if success:
                                 processed_count += 1
+                                last_download_time = datetime.datetime.utcnow()  # Record when download was created
                                 logger.info(f"Successfully created download task for: {title}")
                             else:
                                 logger.error(f"Failed to create download task for: {title}")
@@ -394,9 +397,13 @@ def check_rss_feeds():
                     else:
                         logger.info(f"Auto-create disabled for rule {rule.name}, skipping: {entry.get('title', '')}")
                 
-                # Update last update time
-                rule.last_update_time = datetime.datetime.utcnow()
-                db.commit()
+                # Only update last_update_time if we actually created download tasks
+                if last_download_time:
+                    rule.last_update_time = last_download_time
+                    db.commit()
+                    logger.info(f"Updated last_update_time for rule {rule.name} to {last_download_time}")
+                else:
+                    logger.debug(f"No downloads created for rule {rule.name}, last_update_time unchanged")
                 
                 logger.info(f"Completed checking rule: {rule.name}, processed {processed_count} tasks")
                 
@@ -441,6 +448,8 @@ def check_individual_rule(rule_id: int):
         
         # Process entries with proper filtering
         processed_count = 0
+        last_download_time = None
+        
         for entry in feed.entries:
             if processed_count >= rule.max_tasks:
                 logger.info(f"Reached max tasks limit ({rule.max_tasks}) for rule: {rule.name}")
@@ -462,15 +471,20 @@ def check_individual_rule(rule_id: int):
                 success = send_to_aria2(aria2_config, torrent_url, title)
                 if success:
                     processed_count += 1
+                    last_download_time = datetime.datetime.utcnow()  # Record when download was created
                     logger.info(f"Successfully created download task for: {title}")
                 else:
                     logger.error(f"Failed to create download task for: {title}")
             else:
                 logger.warning(f"No torrent URL found for entry: {entry.get('title', '')}")
         
-        # Update last update time
-        rule.last_update_time = datetime.datetime.utcnow()
-        db.commit()
+        # Only update last_update_time if we actually created download tasks
+        if last_download_time:
+            rule.last_update_time = last_download_time
+            db.commit()
+            logger.info(f"Updated last_update_time for rule {rule.name} to {last_download_time}")
+        else:
+            logger.debug(f"No downloads created for rule {rule.name}, last_update_time unchanged")
         
         logger.info(f"Manual check completed for rule: {rule.name}, processed {processed_count} tasks")
         
