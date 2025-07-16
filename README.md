@@ -41,3 +41,35 @@ The recommended way to deploy this application is with Docker Compose.
 1.  打开您的网络浏览器并访问 `http://localhost:53000`。
 2.  首次运行该应用程序时，您需要配置您的 Aria2 下载器设置。点击“下载器设置”按钮打开配置模式窗口。
 3.  配置完下载器后，您可以点击“新建自动下载规则”按钮创建新的自动下载规则。
+
+## To-Do List
+
+### 🎨 UI/UX Enhancements
+
+- [ ] **Waifu Integration**
+  - Add waifu to README
+  - Add waifu to main page
+  - Design and implement application logo with waifu
+
+- [ ] **Custom Background & Theme System**
+  - Allow users to upload custom background images
+  - Implement background transparency controls
+  - Add image zoom in/out functionality
+  - Provide real-time preview during image upload
+  - Create fully customizable theme system
+  - Support for different background modes (cover, contain, repeat, etc.)
+
+### 🐛 Bug Fixes
+
+#### Low Priority
+- [ ] **Edit Rule Page - Time Filter Bug**
+  - BUG(low prior): "edit rule page" after applied 只下载指定时间之后的新资源(Only download new resources after the specified time), backend does not create correct download tasks after applied options
+
+- [ ] **Monitor Interval Feature**
+  - BUG(low): individual rule "监控间隔" (monitor interval) option not working
+
+- [ ] **Main Page Layout**
+  - BUG(low): Better main page layout optimization
+
+- [ ] **UTC+0 Timezone Display**
+  - BUG(low): UTC+0 timezone display on main page 
