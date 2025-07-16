@@ -18,7 +18,7 @@ const translations: Record<Language, TranslationDict> = {
   zh: {
     // Header
     'app.title': '自动下载 (作品监控列表)',
-    
+
     // Buttons
     'button.run_rules': '运行规则',
     'button.create_rule': '新建自动下载规则',
@@ -28,7 +28,7 @@ const translations: Record<Language, TranslationDict> = {
     'button.save': '保存',
     'button.cancel': '取消',
     'button.save_rule': '保存规则',
-    
+
     // Table headers
     'table.select_all': '全选/取消全选',
     'table.enabled': '启用',
@@ -38,7 +38,7 @@ const translations: Record<Language, TranslationDict> = {
     'table.max_tasks': '最多任务数',
     'table.creation_time': '创建时间',
     'table.last_update': '最近更新',
-    
+
     // Preview
     'preview.label': '预览选中的规则',
     'preview.title': '预览',
@@ -46,7 +46,7 @@ const translations: Record<Language, TranslationDict> = {
     'preview.no_items': '无符合条件的项目',
     'preview.no_rule': '该规则当前没有符合条件的项目',
     'preview.select_rule': '请选择一个规则查看预览',
-    
+
     // Preview table headers
     'preview.table.title': '标题',
     'preview.table.task_status': '任务状态',
@@ -54,7 +54,7 @@ const translations: Record<Language, TranslationDict> = {
     'preview.table.subtitle_group': '字幕组',
     'preview.table.size': '大小',
     'preview.table.publish_time': '发布时间',
-    
+
     // Status
     'status.exists': '已存在',
     'status.new_task': '新任务',
@@ -63,7 +63,7 @@ const translations: Record<Language, TranslationDict> = {
     'status.all_groups': '全部',
     'status.unknown': '未知',
     'status.unknown_time': '未知时间',
-    
+
     // Messages
     'message.rules_updated': '规则状态已更新',
     'message.rules_run_success': '规则运行成功',
@@ -77,7 +77,7 @@ const translations: Record<Language, TranslationDict> = {
     'message.select_rule_to_edit': '请选择一个规则进行编辑',
     'message.select_rules_to_delete': '请选择要删除的规则',
     'message.confirm_delete': '确定要删除 {count} 个规则吗？',
-    
+
     // Edit Rule Dialog
     'edit_rule.title_create': '新建自动下载规则',
     'edit_rule.title_edit': '编辑自动下载规则',
@@ -102,11 +102,27 @@ const translations: Record<Language, TranslationDict> = {
     'edit_rule.enter_rss_url': '请输入RSS地址以查看预览',
     'edit_rule.filter_summary': '共 {total} 个项目，应用过滤器后显示 {filtered} 个',
     'edit_rule.filter_limit': ' (限制为前 {limit} 个)',
+
+    // Aria2 Settings
+    'aria2.title': '配置 Aria2',
+    'aria2.rpc_address': 'Aria2服务器的 RPC 地址/路径:',
+    'aria2.test_connection': '测试连接 Aria2 服务器',
+    'aria2.testing_connection': '测试连接中...',
+    'aria2.connection_success': '连接成功！Aria2 版本: {version}',
+    'aria2.connection_failed': '连接测试失败，请检查配置',
+    'aria2.host_label': '服务器名称或IP地址',
+    'aria2.port_label': '端口',
+    'aria2.rpc_path_label': 'RPC 路径',
+    'aria2.ssl_label': '启用 SSL/TLS 加密',
+    'aria2.token_label': '[可选] 密码令牌',
+    'aria2.token_helper': '如果Aria2配置了rpc-secret，请在此输入',
+    'aria2.download_path_label': '默认下载位置',
+    'aria2.download_path_helper': 'Aria2服务器上的下载目录路径',
   },
   en: {
     // Header
     'app.title': 'Auto Download (Anime Monitor List)',
-    
+
     // Buttons
     'button.run_rules': 'Run Rules',
     'button.create_rule': 'Create New Rule',
@@ -116,7 +132,7 @@ const translations: Record<Language, TranslationDict> = {
     'button.save': 'Save',
     'button.cancel': 'Cancel',
     'button.save_rule': 'Save Rule',
-    
+
     // Table headers
     'table.select_all': 'Select All/Deselect All',
     'table.enabled': 'Enabled',
@@ -126,7 +142,7 @@ const translations: Record<Language, TranslationDict> = {
     'table.max_tasks': 'Max Tasks',
     'table.creation_time': 'Created',
     'table.last_update': 'Last Update',
-    
+
     // Preview
     'preview.label': 'Preview Selected Rule',
     'preview.title': 'Preview',
@@ -134,7 +150,7 @@ const translations: Record<Language, TranslationDict> = {
     'preview.no_items': 'No matching items',
     'preview.no_rule': 'This rule currently has no matching items',
     'preview.select_rule': 'Please select a rule to preview',
-    
+
     // Preview table headers
     'preview.table.title': 'Title',
     'preview.table.task_status': 'Task Status',
@@ -142,7 +158,7 @@ const translations: Record<Language, TranslationDict> = {
     'preview.table.subtitle_group': 'Subtitle Group',
     'preview.table.size': 'Size',
     'preview.table.publish_time': 'Published',
-    
+
     // Status
     'status.exists': 'Exists',
     'status.new_task': 'New Task',
@@ -151,7 +167,7 @@ const translations: Record<Language, TranslationDict> = {
     'status.all_groups': 'All',
     'status.unknown': 'Unknown',
     'status.unknown_time': 'Unknown Time',
-    
+
     // Messages
     'message.rules_updated': 'Rule status updated',
     'message.rules_run_success': 'Rules executed successfully',
@@ -165,7 +181,7 @@ const translations: Record<Language, TranslationDict> = {
     'message.select_rule_to_edit': 'Please select one rule to edit',
     'message.select_rules_to_delete': 'Please select rules to delete',
     'message.confirm_delete': 'Are you sure you want to delete {count} rule(s)?',
-    
+
     // Edit Rule Dialog
     'edit_rule.title_create': 'Create New Auto Download Rule',
     'edit_rule.title_edit': 'Edit Auto Download Rule',
@@ -190,6 +206,22 @@ const translations: Record<Language, TranslationDict> = {
     'edit_rule.enter_rss_url': 'Please enter RSS URL to view preview',
     'edit_rule.filter_summary': 'Total {total} items, showing {filtered} after filtering',
     'edit_rule.filter_limit': ' (limited to first {limit})',
+
+    // Aria2 Settings
+    'aria2.title': 'Configure Aria2',
+    'aria2.rpc_address': 'Aria2 server RPC address/path:',
+    'aria2.test_connection': 'Test Aria2 Server Connection',
+    'aria2.testing_connection': 'Testing connection...',
+    'aria2.connection_success': 'Connection successful! Aria2 version: {version}',
+    'aria2.connection_failed': 'Connection test failed, please check configuration',
+    'aria2.host_label': 'Server name or IP address',
+    'aria2.port_label': 'Port',
+    'aria2.rpc_path_label': 'RPC Path',
+    'aria2.ssl_label': 'Enable SSL/TLS encryption',
+    'aria2.token_label': '[Optional] Password Token',
+    'aria2.token_helper': 'Enter here if Aria2 is configured with rpc-secret',
+    'aria2.download_path_label': 'Default download location',
+    'aria2.download_path_helper': 'Download directory path on Aria2 server',
   }
 };
 
@@ -209,14 +241,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const t = (key: string, params?: Record<string, string | number>): string => {
     let text = (translations[language] as Record<string, string>)[key] || key;
-    
+
     // Replace parameters in the text
     if (params) {
       Object.entries(params).forEach(([param, value]) => {
         text = text.replace(`{${param}}`, String(value));
       });
     }
-    
+
     return text;
   };
 

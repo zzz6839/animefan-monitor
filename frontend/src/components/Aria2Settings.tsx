@@ -15,6 +15,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { API_BASE } from '../config/api';
+import { useLanguage } from '../contexts/LanguageContext';
 import axios from 'axios';
 
 interface Aria2SettingsProps {
@@ -23,6 +24,7 @@ interface Aria2SettingsProps {
 }
 
 function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
+  const { t } = useLanguage();
   const [host, setHost] = useState('192.168.1.219');
   const [port, setPort] = useState(6800);
   const [rpcPath, setRpcPath] = useState('jsonrpc');
@@ -76,7 +78,7 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
       console.error('Error testing connection:', error);
       setTestResult({
         status: 'error',
-        message: '连接测试失败，请检查配置'
+        message: t('aria2.connection_failed')
       });
     } finally {
       setIsTesting(false);
@@ -101,11 +103,11 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>配置 Aria2</DialogTitle>
+      <DialogTitle>{t('aria2.title')}</DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 3 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            Aria2服务器的 RPC 地址/路径:
+            {t('aria2.rpc_address')}
           </Typography>
           <Typography variant="body1" sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', p: 1, borderRadius: 1 }}>
             {getRpcUrl()}
@@ -121,10 +123,10 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
               {isTesting ? (
                 <>
                   <CircularProgress size={14} sx={{ mr: 1 }} />
-                  测试连接中...
+                  {t('aria2.testing_connection')}
                 </>
               ) : (
-                '测试连接 Aria2 服务器'
+                t('aria2.test_connection')
               )}
             </Link>
           </Box>
@@ -135,8 +137,8 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
               sx={{ mt: 2 }}
             >
               {testResult.status === 'success'
-                ? `连接成功！Aria2 版本: ${testResult.version}`
-                : testResult.message
+                ? t('aria2.connection_success', { version: testResult.version || 'Unknown' })
+                : (testResult.message || t('aria2.connection_failed'))
               }
             </Alert>
           )}
@@ -145,7 +147,7 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
         <TextField
           autoFocus
           margin="dense"
-          label="服务器名称或IP地址"
+          label={t('aria2.host_label')}
           type="text"
           fullWidth
           value={host}
@@ -155,7 +157,7 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
 
         <TextField
           margin="dense"
-          label="端口"
+          label={t('aria2.port_label')}
           type="number"
           fullWidth
           value={port}
@@ -165,7 +167,7 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
 
         <TextField
           margin="dense"
-          label="RPC 路径"
+          label={t('aria2.rpc_path_label')}
           type="text"
           fullWidth
           value={rpcPath}
@@ -180,35 +182,35 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
               onChange={(e) => setUseSsl(e.target.checked)}
             />
           }
-          label="启用 SSL/TLS 加密"
+          label={t('aria2.ssl_label')}
           sx={{ mb: 2 }}
         />
 
         <TextField
           margin="dense"
-          label="[可选] 密码令牌"
+          label={t('aria2.token_label')}
           type="password"
           fullWidth
           value={token}
           onChange={(e) => setToken(e.target.value)}
-          helperText="如果Aria2配置了rpc-secret，请在此输入"
+          helperText={t('aria2.token_helper')}
           sx={{ mb: 2 }}
         />
 
         <TextField
           margin="dense"
-          label="默认下载位置"
+          label={t('aria2.download_path_label')}
           type="text"
           fullWidth
           value={downloadPath}
           onChange={(e) => setDownloadPath(e.target.value)}
-          helperText="Aria2服务器上的下载目录路径"
+          helperText={t('aria2.download_path_helper')}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>取消</Button>
+        <Button onClick={onClose}>{t('button.cancel')}</Button>
         <Button onClick={handleSave} variant="contained">
-          保存
+          {t('button.save')}
         </Button>
       </DialogActions>
     </Dialog>
