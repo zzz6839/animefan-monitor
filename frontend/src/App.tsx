@@ -23,9 +23,11 @@ import {
 import { Brightness4, Brightness7, Language as LanguageIcon } from '@mui/icons-material';
 import { useTheme } from './contexts/ThemeContext';
 import { useLanguage } from './contexts/LanguageContext';
+import { useTimezone } from './contexts/TimezoneContext';
 import { API_BASE } from './config/api';
 import EditRule from './components/EditRule';
 import Aria2Settings from './components/Aria2Settings';
+import TimezoneSettings from './components/TimezoneSettings';
 
 interface Rule {
   id: number;
@@ -61,6 +63,7 @@ function App() {
   const [editRuleOpen, setEditRuleOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [aria2SettingsOpen, setAria2SettingsOpen] = useState(false);
+  const [timezoneSettingsOpen, setTimezoneSettingsOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   // Sorting state
@@ -73,6 +76,7 @@ function App() {
 
   const { darkMode, toggleDarkMode } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
+  const { formatDate, formatTime } = useTimezone();
 
   useEffect(() => {
     console.log('App starting, API_BASE:', API_BASE);
@@ -346,6 +350,12 @@ function App() {
           >
             {t('button.downloader_settings')}
           </Button>
+          <Button
+            variant="outlined"
+            onClick={() => setTimezoneSettingsOpen(true)}
+          >
+            {t('button.timezone_settings')}
+          </Button>
         </Box>
 
         <TableContainer component={Paper} sx={{ mb: 2 }}>
@@ -481,20 +491,20 @@ function App() {
                   <TableCell align="center">{rule.max_tasks}</TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {new Date(rule.creation_time).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}
+                      {formatDate(rule.creation_time)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {new Date(rule.creation_time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                      {formatTime(rule.creation_time)}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     {rule.last_update_time ? (
                       <>
                         <Typography variant="body2">
-                          {new Date(rule.last_update_time).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}
+                          {formatDate(rule.last_update_time)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {new Date(rule.last_update_time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                          {formatTime(rule.last_update_time)}
                         </Typography>
                       </>
                     ) : (
@@ -600,7 +610,7 @@ function App() {
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
                             {item.published && item.published !== "未知时间" ?
-                              new Date(item.published).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US') :
+                              formatDate(item.published) :
                               (item.published === "未知时间" ? t('status.unknown_time') : item.published)
                             }
                           </Typography>
@@ -633,6 +643,11 @@ function App() {
         <Aria2Settings
           open={aria2SettingsOpen}
           onClose={() => setAria2SettingsOpen(false)}
+        />
+
+        <TimezoneSettings
+          open={timezoneSettingsOpen}
+          onClose={() => setTimezoneSettingsOpen(false)}
         />
 
         <Snackbar

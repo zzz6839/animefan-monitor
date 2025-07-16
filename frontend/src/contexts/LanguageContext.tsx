@@ -28,6 +28,7 @@ const translations: Record<Language, TranslationDict> = {
     'button.save': '保存',
     'button.cancel': '取消',
     'button.save_rule': '保存规则',
+    'button.timezone_settings': '时区设置',
 
     // Table headers
     'table.select_all': '全选/取消全选',
@@ -119,6 +120,14 @@ const translations: Record<Language, TranslationDict> = {
     'aria2.token_helper': '如果Aria2配置了rpc-secret，请在此输入',
     'aria2.download_path_label': '默认下载位置',
     'aria2.download_path_helper': 'Aria2服务器上的下载目录路径',
+
+    // Timezone Settings
+    'timezone.title': '时区设置',
+    'timezone.description': '设置应用程序显示时间的时区。这将影响所有日期和时间的显示。',
+    'timezone.current_time': '当前时间',
+    'timezone.select_timezone': '选择时区',
+    'timezone.preview': '预览',
+    'timezone.sample_date': '示例日期',
   },
   en: {
     // Header
@@ -133,6 +142,7 @@ const translations: Record<Language, TranslationDict> = {
     'button.save': 'Save',
     'button.cancel': 'Cancel',
     'button.save_rule': 'Save Rule',
+    'button.timezone_settings': 'Timezone Settings',
 
     // Table headers
     'table.select_all': 'Select All/Deselect All',
@@ -224,6 +234,14 @@ const translations: Record<Language, TranslationDict> = {
     'aria2.token_helper': 'Enter here if Aria2 is configured with rpc-secret',
     'aria2.download_path_label': 'Default download location',
     'aria2.download_path_helper': 'Download directory path on Aria2 server',
+
+    // Timezone Settings
+    'timezone.title': 'Timezone Settings',
+    'timezone.description': 'Set the timezone for displaying dates and times in the application. This affects all date and time displays.',
+    'timezone.current_time': 'Current time',
+    'timezone.select_timezone': 'Select timezone',
+    'timezone.preview': 'Preview',
+    'timezone.sample_date': 'Sample date',
   }
 };
 
