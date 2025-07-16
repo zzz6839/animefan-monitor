@@ -9,6 +9,7 @@ services:
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
+      - timezone=Asia/Shanghai
 
   frontend:
     #build: ./frontend

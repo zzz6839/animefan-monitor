@@ -254,26 +254,32 @@ def format_published_date(published: str) -> str:
                 continue
         
         if not parsed_date:
-            # If all parsing fails, return original
+            # If all parsing fails, return original for better frontend filtering
+            logger.debug(f"Could not parse date, returning original: {published}")
             return published
         
-        # Calculate time difference
-        now = datetime.now(timezone.utc)
-        diff = now - parsed_date
+        # For better frontend filtering, return ISO format instead of relative time
+        # This allows the frontend to do accurate date comparisons
+        return parsed_date.isoformat()
         
-        if diff.days == 0:
-            if diff.seconds < 3600:  # Less than 1 hour
-                minutes = diff.seconds // 60
-                return f"{minutes}分钟前" if minutes > 0 else "刚刚"
-            else:  # Less than 1 day
-                hours = diff.seconds // 3600
-                return f"{hours}小时前"
-        elif diff.days == 1:
-            return f"昨天 {parsed_date.strftime('%H:%M')}"
-        elif diff.days < 7:
-            return f"{diff.days}天前"
-        else:
-            return parsed_date.strftime('%m-%d %H:%M')
+        # Original relative time formatting (commented out for better filtering)
+        # # Calculate time difference
+        # now = datetime.now(timezone.utc)
+        # diff = now - parsed_date
+        # 
+        # if diff.days == 0:
+        #     if diff.seconds < 3600:  # Less than 1 hour
+        #         minutes = diff.seconds // 60
+        #         return f"{minutes}分钟前" if minutes > 0 else "刚刚"
+        #     else:  # Less than 1 day
+        #         hours = diff.seconds // 3600
+        #         return f"{hours}小时前"
+        # elif diff.days == 1:
+        #     return f"昨天 {parsed_date.strftime('%H:%M')}"
+        # elif diff.days < 7:
+        #     return f"{diff.days}天前"
+        # else:
+        #     return parsed_date.strftime('%m-%d %H:%M')
             
     except Exception as e:
         logger.debug(f"Error formatting date: {e}")

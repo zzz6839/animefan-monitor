@@ -178,38 +178,74 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
         try {
           const filterDate = new Date(downloadAfter);
           
-          // Parse item date - handle different formats
+          // Parse item date - now simplified since backend returns ISO format
           let itemDate: Date | null = null;
           
-          // Try parsing the published date
           const publishedStr = item.published;
-          if (publishedStr) {
-            // Handle relative time formats (e.g., "2小时前", "昨天 14:30")
-            if (publishedStr.includes('分钟前') || publishedStr.includes('小时前') || publishedStr.includes('天前')) {
-              // For relative times, we'll assume they're recent and include them
-              itemDate = new Date();
-            } else {
-              // Try to parse as regular date
-              itemDate = new Date(publishedStr);
-              
-              // If that fails, try common date formats
-              if (isNaN(itemDate.getTime())) {
-                // Try parsing MM-DD HH:MM format (add current year)
-                const currentYear = new Date().getFullYear();
-                const dateWithYear = `${currentYear}-${publishedStr}`;
-                itemDate = new Date(dateWithYear);
+          if (publishedStr && publishedStr !== "未知时间") {
+            // Backend now returns ISO format dates, so direct parsing should work
+            itemDate = new Date(publishedStr);
+            
+            // If direct parsing fails, try some fallback formats
+            if (isNaN(itemDate.getTime())) {
+              // Handle any remaining relative time formats (fallback)
+              if (publishedStr.includes('分钟前')) {
+                const minutes = parseInt(publishedStr.match(/(\d+)分钟前/)?.[1] || '0');
+                itemDate = new Date(Date.now() - minutes * 60 * 1000);
+              } else if (publishedStr.includes('小时前')) {
+                const hours = parseInt(publishedStr.match(/(\d+)小时前/)?.[1] || '0');
+                itemDate = new Date(Date.now() - hours * 60 * 60 * 1000);
+              } else if (publishedStr.includes('天前')) {
+                const days = parseInt(publishedStr.match(/(\d+)天前/)?.[1] || '0');
+                itemDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+              } else if (publishedStr.includes('刚刚')) {
+                itemDate = new Date();
+              } else if (publishedStr.includes('昨天')) {
+                const timeMatch = publishedStr.match(/昨天\s*(\d{1,2}):(\d{2})/);
+                if (timeMatch) {
+                  const yesterday = new Date();
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  yesterday.setHours(parseInt(timeMatch[1]), parseInt(timeMatch[2]), 0, 0);
+                  itemDate = yesterday;
+                } else {
+                  const yesterday = new Date();
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  itemDate = yesterday;
+                }
+              } else {
+                // Try RFC 2822 format (common in RSS feeds)
+                try {
+                  itemDate = new Date(publishedStr);
+                } catch (e) {
+                  console.debug('Could not parse date:', publishedStr);
+                }
               }
             }
           }
           
-          // Check if both dates are valid
+          // Debug logging for troubleshooting
+          console.log('Date filter debug:', {
+            filterDate: filterDate.toISOString(),
+            filterDateLocal: filterDate.toLocaleString(),
+            publishedStr,
+            itemDate: itemDate?.toISOString(),
+            itemDateLocal: itemDate?.toLocaleString(),
+            isValidFilter: !isNaN(filterDate.getTime()),
+            isValidItem: itemDate && !isNaN(itemDate.getTime()),
+            comparison: itemDate && itemDate < filterDate ? 'FILTERED OUT (too old)' : 'INCLUDED (recent enough)',
+            timeDiff: itemDate ? `${Math.round((itemDate.getTime() - filterDate.getTime()) / (1000 * 60 * 60))} hours` : 'N/A'
+          });
+          
+          // Apply the filter: exclude items older than the specified date
           if (!isNaN(filterDate.getTime()) && itemDate && !isNaN(itemDate.getTime())) {
             if (itemDate < filterDate) {
-              return false;
+              return false; // Filter out items older than the specified date
             }
+          } else {
+            // If we can't parse the date, include the item (fail-safe)
+            console.warn('Could not parse date, including item:', publishedStr);
           }
         } catch (error) {
-          // If date parsing fails, include the item
           console.debug('Date parsing error:', error);
         }
       }
