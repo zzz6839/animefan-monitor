@@ -10,7 +10,7 @@ export default defineConfig({
     strictPort: true,
     cors: true,
     // Allow all hosts for LAN access
-    allowedHosts: 'all',
+    allowedHosts: true,
     // Additional headers for CORS and security
     headers: {
       'Access-Control-Allow-Origin': '*',

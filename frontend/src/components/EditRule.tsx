@@ -17,7 +17,6 @@ import {
   IconButton,
   Divider,
   Paper,
-  useTheme
 } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 import { API_BASE } from '../config/api';
