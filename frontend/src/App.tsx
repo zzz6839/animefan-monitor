@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import {
   Container,
@@ -16,10 +16,13 @@ import {
   FormControlLabel,
   Alert,
   Snackbar,
-  IconButton
+  IconButton,
+  TableSortLabel,
+  Chip
 } from '@mui/material';
-import { Brightness4, Brightness7 } from '@mui/icons-material';
+import { Brightness4, Brightness7, Language as LanguageIcon } from '@mui/icons-material';
 import { useTheme } from './contexts/ThemeContext';
+import { useLanguage } from './contexts/LanguageContext';
 import { API_BASE } from './config/api';
 import EditRule from './components/EditRule';
 import Aria2Settings from './components/Aria2Settings';
@@ -54,12 +57,66 @@ function App() {
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [aria2SettingsOpen, setAria2SettingsOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  
+  // Sorting state
+  const [sortBy, setSortBy] = useState<keyof Rule>(() => {
+    return (localStorage.getItem('tableSortBy') as keyof Rule) || 'creation_time';
+  });
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
+    return (localStorage.getItem('tableSortOrder') as 'asc' | 'desc') || 'desc';
+  });
+  
   const { darkMode, toggleDarkMode } = useTheme();
+  const { language, toggleLanguage, t } = useLanguage();
 
   useEffect(() => {
     console.log('App starting, API_BASE:', API_BASE);
     fetchRules();
   }, []);
+
+  // Save sorting preferences to localStorage
+  useEffect(() => {
+    localStorage.setItem('tableSortBy', sortBy);
+    localStorage.setItem('tableSortOrder', sortOrder);
+  }, [sortBy, sortOrder]);
+
+  // Sorted rules
+  const sortedRules = useMemo(() => {
+    return [...rules].sort((a, b) => {
+      let aValue = a[sortBy];
+      let bValue = b[sortBy];
+      
+      // Handle null values
+      if (aValue === null && bValue === null) return 0;
+      if (aValue === null) return sortOrder === 'asc' ? -1 : 1;
+      if (bValue === null) return sortOrder === 'asc' ? 1 : -1;
+      
+      // Handle date strings
+      if (sortBy === 'creation_time' || sortBy === 'last_update_time') {
+        aValue = new Date(aValue as string).getTime();
+        bValue = new Date(bValue as string).getTime();
+      }
+      
+      // Handle string comparison
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [rules, sortBy, sortOrder]);
+
+  const handleSort = (column: keyof Rule) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
 
   const fetchRules = async () => {
     try {
@@ -67,7 +124,7 @@ function App() {
       setRules(response.data);
     } catch (error) {
       console.error('Error fetching rules:', error);
-      showSnackbar('获取规则失败', 'error');
+      showSnackbar(t('message.fetch_rules_error'), 'error');
     }
   };
 
@@ -79,16 +136,16 @@ function App() {
     try {
       await axios.post(`${API_BASE}/rules/${ruleId}/toggle`);
       fetchRules();
-      showSnackbar('规则状态已更新', 'success');
+      showSnackbar(t('message.rules_updated'), 'success');
     } catch (error) {
       console.error('Error toggling rule:', error);
-      showSnackbar('更新规则状态失败', 'error');
+      showSnackbar(t('message.update_rule_error'), 'error');
     }
   };
 
   const handleRunRules = async () => {
     if (selectedRuleIds.length === 0) {
-      showSnackbar('请选择要运行的规则', 'error');
+      showSnackbar(t('message.select_rules_to_run'), 'error');
       return;
     }
 
@@ -96,10 +153,10 @@ function App() {
       for (const ruleId of selectedRuleIds) {
         await axios.post(`${API_BASE}/rules/${ruleId}/run`);
       }
-      showSnackbar('规则运行成功', 'success');
+      showSnackbar(t('message.rules_run_success'), 'success');
     } catch (error) {
       console.error('Error running rules:', error);
-      showSnackbar('运行规则失败', 'error');
+      showSnackbar(t('message.run_rules_error'), 'error');
     }
   };
 
@@ -110,7 +167,7 @@ function App() {
 
   const handleEditRule = () => {
     if (selectedRuleIds.length !== 1) {
-      showSnackbar('请选择一个规则进行编辑', 'error');
+      showSnackbar(t('message.select_rule_to_edit'), 'error');
       return;
     }
     const rule = rules.find(r => r.id === selectedRuleIds[0]);
@@ -120,11 +177,11 @@ function App() {
 
   const handleDeleteRules = async () => {
     if (selectedRuleIds.length === 0) {
-      showSnackbar('请选择要删除的规则', 'error');
+      showSnackbar(t('message.select_rules_to_delete'), 'error');
       return;
     }
 
-    if (!confirm(`确定要删除 ${selectedRuleIds.length} 个规则吗？`)) {
+    if (!confirm(t('message.confirm_delete', { count: selectedRuleIds.length }))) {
       return;
     }
 
@@ -134,10 +191,10 @@ function App() {
       }
       setSelectedRuleIds([]);
       fetchRules();
-      showSnackbar('规则删除成功', 'success');
+      showSnackbar(t('message.rules_deleted'), 'success');
     } catch (error) {
       console.error('Error deleting rules:', error);
-      showSnackbar('删除规则失败', 'error');
+      showSnackbar(t('message.delete_rules_error'), 'error');
     }
   };
 
@@ -176,7 +233,7 @@ function App() {
       setPreviewItems(response.data);
     } catch (error) {
       console.error('Error fetching preview:', error);
-      showSnackbar('获取预览失败', 'error');
+      showSnackbar(t('message.preview_error'), 'error');
       setPreviewItems([]);
     }
   };
@@ -194,8 +251,15 @@ function App() {
 
   return (
     <Box sx={{ minHeight: '100vh', position: 'relative' }}>
-      {/* Dark/Light mode toggle - fixed to top right */}
-      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
+      {/* Language and Dark/Light mode toggles - fixed to top right */}
+      <Box sx={{ position: 'fixed', top: 16, right: 16, zIndex: 1000, display: 'flex', gap: 1 }}>
+        <Chip
+          icon={<LanguageIcon />}
+          label={language === 'zh' ? '中/EN' : 'EN/中'}
+          onClick={toggleLanguage}
+          variant="outlined"
+          sx={{ cursor: 'pointer' }}
+        />
         <IconButton onClick={toggleDarkMode} color="inherit">
           {darkMode ? <Brightness7 /> : <Brightness4 />}
         </IconButton>
@@ -204,7 +268,7 @@ function App() {
       {/* Main content starting from top left */}
       <Container maxWidth="xl" sx={{ pt: 2, pb: 2, pl: 2 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 3 }}>
-          自动下载 (作品监控列表)
+          {t('app.title')}
         </Typography>
 
       <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -214,14 +278,14 @@ function App() {
           onClick={handleRunRules}
           disabled={selectedRuleIds.length === 0}
         >
-          运行规则
+          {t('button.run_rules')}
         </Button>
         <Button
           variant="contained"
           color="primary"
           onClick={handleCreateRule}
         >
-          新建自动下载规则
+          {t('button.create_rule')}
         </Button>
         <Button
           variant="contained"
@@ -229,7 +293,7 @@ function App() {
           onClick={handleEditRule}
           disabled={selectedRuleIds.length !== 1}
         >
-          编辑规则
+          {t('button.edit_rule')}
         </Button>
         <Button
           variant="contained"
@@ -237,13 +301,13 @@ function App() {
           onClick={handleDeleteRules}
           disabled={selectedRuleIds.length === 0}
         >
-          删除规则
+          {t('button.delete_rules')}
         </Button>
         <Button
           variant="outlined"
           onClick={() => setAria2SettingsOpen(true)}
         >
-          下载器设置
+          {t('button.downloader_settings')}
         </Button>
       </Box>
 
@@ -254,28 +318,76 @@ function App() {
               <TableCell padding="checkbox" sx={{ width: 50 }}>
                 <Checkbox
                   indeterminate={selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length}
-                  checked={rules.length > 0 && selectedRuleIds.length === rules.length}
+                  checked={sortedRules.length > 0 && selectedRuleIds.length === sortedRules.length}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedRuleIds(rules.map(r => r.id));
+                      setSelectedRuleIds(sortedRules.map(r => r.id));
                     } else {
                       setSelectedRuleIds([]);
                     }
                   }}
-                  title="全选/取消全选"
+                  title={t('table.select_all')}
                 />
               </TableCell>
-              <TableCell sx={{ width: 80 }}>启用</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>名称</TableCell>
-              <TableCell sx={{ width: 100 }}>字幕组</TableCell>
-              <TableCell sx={{ minWidth: 300 }}>RSS地址</TableCell>
-              <TableCell sx={{ width: 100 }}>最多任务数</TableCell>
-              <TableCell sx={{ width: 150 }}>创建时间</TableCell>
-              <TableCell sx={{ width: 150 }}>最近更新</TableCell>
+              <TableCell sx={{ width: 80 }}>
+                <TableSortLabel
+                  active={sortBy === 'enabled'}
+                  direction={sortBy === 'enabled' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('enabled')}
+                >
+                  {t('table.enabled')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={{ minWidth: 120 }}>
+                <TableSortLabel
+                  active={sortBy === 'name'}
+                  direction={sortBy === 'name' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('name')}
+                >
+                  {t('table.name')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={{ width: 100 }}>
+                <TableSortLabel
+                  active={sortBy === 'subtitle_group'}
+                  direction={sortBy === 'subtitle_group' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('subtitle_group')}
+                >
+                  {t('table.subtitle_group')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={{ minWidth: 300 }}>{t('table.rss_url')}</TableCell>
+              <TableCell sx={{ width: 100 }}>
+                <TableSortLabel
+                  active={sortBy === 'max_tasks'}
+                  direction={sortBy === 'max_tasks' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('max_tasks')}
+                >
+                  {t('table.max_tasks')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={{ width: 150 }}>
+                <TableSortLabel
+                  active={sortBy === 'creation_time'}
+                  direction={sortBy === 'creation_time' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('creation_time')}
+                >
+                  {t('table.creation_time')}
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={{ width: 150 }}>
+                <TableSortLabel
+                  active={sortBy === 'last_update_time'}
+                  direction={sortBy === 'last_update_time' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('last_update_time')}
+                >
+                  {t('table.last_update')}
+                </TableSortLabel>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {rules.map(rule => (
+            {sortedRules.map(rule => (
               <TableRow
                 key={rule.id}
                 hover
@@ -312,7 +424,7 @@ function App() {
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" color={rule.subtitle_group === "<全部>" ? "text.secondary" : "text.primary"}>
-                    {rule.subtitle_group === "<全部>" ? "全部" : rule.subtitle_group}
+                    {rule.subtitle_group === "<全部>" ? t('status.all_groups') : rule.subtitle_group}
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -332,24 +444,24 @@ function App() {
                 <TableCell align="center">{rule.max_tasks}</TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {new Date(rule.creation_time).toLocaleDateString('zh-CN')}
+                    {new Date(rule.creation_time).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {new Date(rule.creation_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(rule.creation_time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                   </Typography>
                 </TableCell>
                 <TableCell>
                   {rule.last_update_time ? (
                     <>
                       <Typography variant="body2">
-                        {new Date(rule.last_update_time).toLocaleDateString('zh-CN')}
+                        {new Date(rule.last_update_time).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US')}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {new Date(rule.last_update_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(rule.last_update_time).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
                     </>
                   ) : (
-                    <Typography variant="body2" color="text.secondary">未知</Typography>
+                    <Typography variant="body2" color="text.secondary">{t('status.unknown')}</Typography>
                   )}
                 </TableCell>
               </TableRow>
@@ -366,7 +478,7 @@ function App() {
               onChange={(e) => handlePreviewToggle(e.target.checked)}
             />
           }
-          label="预览选中的规则"
+          label={t('preview.label')}
         />
       </Box>
 
@@ -374,10 +486,10 @@ function App() {
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
-              预览: {selectedRule.name}
+              {t('preview.title')}: {selectedRule.name}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {previewItems.length > 0 ? `显示 ${previewItems.length} 个符合条件的项目` : '无符合条件的项目'}
+              {previewItems.length > 0 ? t('preview.count', { count: previewItems.length }) : t('preview.no_items')}
             </Typography>
           </Box>
 
@@ -386,12 +498,12 @@ function App() {
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ minWidth: 400 }}>标题</TableCell>
-                    <TableCell sx={{ width: 100 }}>任务状态</TableCell>
-                    <TableCell sx={{ width: 80 }}>类型</TableCell>
-                    <TableCell sx={{ width: 120 }}>字幕组</TableCell>
-                    <TableCell sx={{ width: 100 }}>大小</TableCell>
-                    <TableCell sx={{ width: 150 }}>发布时间</TableCell>
+                    <TableCell sx={{ minWidth: 400 }}>{t('preview.table.title')}</TableCell>
+                    <TableCell sx={{ width: 100 }}>{t('preview.table.task_status')}</TableCell>
+                    <TableCell sx={{ width: 80 }}>{t('preview.table.type')}</TableCell>
+                    <TableCell sx={{ width: 120 }}>{t('preview.table.subtitle_group')}</TableCell>
+                    <TableCell sx={{ width: 100 }}>{t('preview.table.size')}</TableCell>
+                    <TableCell sx={{ width: 150 }}>{t('preview.table.publish_time')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -419,12 +531,12 @@ function App() {
                           color={item.task_exists ? "success.main" : "text.secondary"}
                           sx={{ fontWeight: item.task_exists ? 'bold' : 'normal' }}
                         >
-                          {item.task_exists ? '已存在' : '新任务'}
+                          {item.task_exists ? t('status.exists') : t('status.new_task')}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="primary">
-                          视频
+                          {t('status.video')}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -432,7 +544,7 @@ function App() {
                           variant="body2"
                           color={item.subtitle_group === "未知字幕组" ? "text.secondary" : "text.primary"}
                         >
-                          {item.subtitle_group}
+                          {item.subtitle_group === "未知字幕组" ? t('status.unknown_group') : item.subtitle_group}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -443,8 +555,8 @@ function App() {
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
                           {item.published && item.published !== "未知时间" ?
-                            new Date(item.published).toLocaleDateString('zh-CN') :
-                            item.published
+                            new Date(item.published).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US') :
+                            (item.published === "未知时间" ? t('status.unknown_time') : item.published)
                           }
                         </Typography>
                       </TableCell>
@@ -456,7 +568,7 @@ function App() {
           ) : (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
-                {selectedRule ? '该规则当前没有符合条件的项目' : '请选择一个规则查看预览'}
+                {selectedRule ? t('preview.no_rule') : t('preview.select_rule')}
               </Typography>
             </Paper>
           )}

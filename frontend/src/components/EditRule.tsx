@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 import { API_BASE } from '../config/api';
+import { useLanguage } from '../contexts/LanguageContext';
 import axios from 'axios';
 
 interface Rule {
@@ -54,6 +55,7 @@ interface EditRuleProps {
 }
 
 function EditRule({ open, onClose, rule }: EditRuleProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [rssUrl, setRssUrl] = useState('');
   const [enabled, setEnabled] = useState(true);
@@ -330,7 +332,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>
-        {rule ? '编辑自动下载规则' : '新建自动下载规则'}
+        {rule ? t('edit_rule.title_edit') : t('edit_rule.title_create')}
       </DialogTitle>
       <DialogContent>
         <Grid container spacing={3}>
@@ -338,7 +340,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
           <Grid item xs={12} md={6}>
             <Box sx={{ pr: 2 }}>
               <Typography variant="h6" gutterBottom>
-                RSS地址
+                {t('edit_rule.rss_url')}
               </Typography>
               <TextField
                 fullWidth
@@ -346,23 +348,23 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                 rows={3}
                 value={rssUrl}
                 onChange={(e) => handleRssUrlChange(e.target.value)}
-                placeholder="输入RSS订阅地址"
+                placeholder={t('edit_rule.rss_url_placeholder')}
                 sx={{ mb: 3 }}
               />
 
               <Typography variant="h6" gutterBottom>
-                为此规则起个名字
+                {t('edit_rule.rule_name')}
               </Typography>
               <TextField
                 fullWidth
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="例如：更衣人偶"
+                placeholder={t('edit_rule.rule_name_placeholder')}
                 sx={{ mb: 3 }}
               />
 
               <Typography variant="h6" gutterBottom>
-                更多选项
+                {t('edit_rule.more_options')}
               </Typography>
               <Box sx={{ pl: 2 }}>
                 <FormControlLabel
@@ -372,7 +374,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                       onChange={(e) => setEnabled(e.target.checked)} 
                     />
                   }
-                  label="立刻启用此规则"
+                  label={t('edit_rule.enable_immediately')}
                 />
                 
                 <FormControlLabel
@@ -382,11 +384,11 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                       onChange={(e) => setAutoCreateTasks(e.target.checked)} 
                     />
                   }
-                  label="发现新资源后自动创建下载任务"
+                  label={t('edit_rule.auto_create_tasks')}
                 />
 
                 <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                  <Typography sx={{ mr: 1 }}>每次更新时最多创建</Typography>
+                  <Typography sx={{ mr: 1 }}>{t('edit_rule.max_tasks')}</Typography>
                   <TextField
                     type="number"
                     size="small"
@@ -394,11 +396,11 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                     onChange={(e) => setMaxTasks(parseInt(e.target.value) || 15)}
                     sx={{ width: 80, mx: 1 }}
                   />
-                  <Typography>个下载任务</Typography>
+                  <Typography>{t('edit_rule.max_tasks_unit')}</Typography>
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-                  <Typography sx={{ mr: 1 }}>监控间隔</Typography>
+                  <Typography sx={{ mr: 1 }}>{t('edit_rule.monitor_interval')}</Typography>
                   <TextField
                     type="number"
                     size="small"
@@ -406,7 +408,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                     onChange={(e) => setMonitorInterval(parseInt(e.target.value) || 10)}
                     sx={{ width: 80, mx: 1 }}
                   />
-                  <Typography>分钟</Typography>
+                  <Typography>{t('edit_rule.monitor_interval_unit')}</Typography>
                 </Box>
 
                 <Box sx={{ my: 2 }}>
@@ -423,7 +425,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                         }} 
                       />
                     }
-                    label="只下载指定时间之后的新资源"
+                    label={t('edit_rule.download_after')}
                   />
                   {downloadAfter && (
                     <TextField
@@ -443,7 +445,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                       onChange={(e) => setDownloadLatest(e.target.checked)} 
                     />
                   }
-                  label="存在多个同名资源时只下载最新版本的资源"
+                  label={t('edit_rule.download_latest')}
                 />
 
                 <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
@@ -457,7 +459,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                       }
                     }} 
                   />
-                  <Typography sx={{ mr: 1 }}>只下载体积小于</Typography>
+                  <Typography sx={{ mr: 1 }}>{t('edit_rule.max_size')}</Typography>
                   <TextField
                     type="number"
                     size="small"
@@ -466,7 +468,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                     disabled={!maxSizeMb}
                     sx={{ width: 100, mx: 1 }}
                   />
-                  <Typography>MB的资源</Typography>
+                  <Typography>{t('edit_rule.max_size_unit')}</Typography>
                 </Box>
               </Box>
             </Box>
@@ -477,7 +479,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
             <Paper sx={{ p: 2, height: '600px', overflow: 'auto' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">
-                  结果预览
+                  {t('edit_rule.preview_title')}
                 </Typography>
                 <IconButton 
                   onClick={() => fetchPreview(rssUrl)}
@@ -490,14 +492,14 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
               </Box>
               
 {isLoadingPreview ? (
-                <Typography>加载中...</Typography>
+                <Typography>{t('edit_rule.loading')}</Typography>
               ) : previewItems.length > 0 ? (
                 <>
                   {/* Filter Summary */}
                   <Box sx={{ mb: 2, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      共 {previewItems.length} 个项目，应用过滤器后显示 {filteredPreviewItems.length} 个
-                      {maxTasks < filteredPreviewItems.length && ` (限制为前 ${maxTasks} 个)`}
+                      {t('edit_rule.filter_summary', { total: previewItems.length, filtered: filteredPreviewItems.length })}
+                      {maxTasks < filteredPreviewItems.length && t('edit_rule.filter_limit', { limit: maxTasks })}
                     </Typography>
                   </Box>
                   
@@ -524,15 +526,15 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                             secondary={
                               <Box>
                                 <Typography variant="caption" color="text.secondary">
-                                  字幕组: {item.subtitle_group}
+                                  {t('preview.table.subtitle_group')}: {item.subtitle_group}
                                 </Typography>
                                 <br />
                                 <Typography variant="caption" color="text.secondary">
-                                  大小: {item.size}
+                                  {t('preview.table.size')}: {item.size}
                                 </Typography>
                                 <br />
                                 <Typography variant="caption" color="text.secondary">
-                                  发布于 {item.published}
+                                  {t('preview.table.publish_time')} {item.published}
                                 </Typography>
                               </Box>
                             }
@@ -545,11 +547,11 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
                 </>
               ) : rssUrl.trim() ? (
                 <Typography color="text.secondary">
-                  无法获取预览数据，请检查RSS地址是否正确
+                  {t('edit_rule.no_preview')}
                 </Typography>
               ) : (
                 <Typography color="text.secondary">
-                  请输入RSS地址以查看预览
+                  {t('edit_rule.enter_rss_url')}
                 </Typography>
               )}
             </Paper>
@@ -557,9 +559,9 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>取消</Button>
+        <Button onClick={onClose}>{t('button.cancel')}</Button>
         <Button onClick={handleSave} variant="contained">
-          保存规则
+          {t('button.save_rule')}
         </Button>
       </DialogActions>
     </Dialog>
