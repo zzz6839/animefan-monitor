@@ -365,6 +365,7 @@ def check_rss_feeds():
                 # Process entries (limit by max_tasks)
                 processed_count = 0
                 last_download_time = None
+                latest_entry_date = None
                 
                 for entry in feed.entries:
                     if processed_count >= rule.max_tasks:
@@ -389,6 +390,50 @@ def check_rss_feeds():
                             if success:
                                 processed_count += 1
                                 last_download_time = datetime.datetime.utcnow()  # Record when download was created
+                                
+                                # Extract and parse the entry's published date to update the filter
+                                raw_published = entry.get('published', '')
+                                if not raw_published:
+                                    # Try to find date in other fields
+                                    for key, value in entry.items():
+                                        if isinstance(value, str) and ('2025' in value or '2024' in value) and 'T' in value:
+                                            raw_published = value
+                                            break
+                                        elif isinstance(value, dict):
+                                            for sub_key, sub_value in value.items():
+                                                if isinstance(sub_value, str) and ('2025' in sub_value or '2024' in sub_value):
+                                                    raw_published = sub_value
+                                                    break
+                                            if raw_published:
+                                                break
+                                
+                                if raw_published:
+                                    # Parse the date using the same logic as matches_filters
+                                    parsed_date = None
+                                    date_formats = [
+                                        '%a, %d %b %Y %H:%M:%S %z',      # RFC 2822 with timezone
+                                        '%a, %d %b %Y %H:%M:%S',         # RFC 2822 without timezone
+                                        '%Y-%m-%dT%H:%M:%S.%f',          # Mikan ISO format with microseconds
+                                        '%Y-%m-%dT%H:%M:%S',             # ISO format without microseconds
+                                        '%Y-%m-%d %H:%M:%S',             # Simple format
+                                        '%Y-%m-%dT%H:%M:%S%z',           # ISO with timezone
+                                        '%Y-%m-%dT%H:%M:%SZ'             # ISO UTC
+                                    ]
+                                    
+                                    for fmt in date_formats:
+                                        try:
+                                            parsed_date = datetime.datetime.strptime(raw_published, fmt)
+                                            if parsed_date.tzinfo is None:
+                                                parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
+                                            break
+                                        except ValueError:
+                                            continue
+                                    
+                                    if parsed_date:
+                                        # Keep track of the latest entry date
+                                        if latest_entry_date is None or parsed_date > latest_entry_date:
+                                            latest_entry_date = parsed_date
+                                
                                 logger.info(f"Successfully created download task for: {title}")
                             else:
                                 logger.error(f"Failed to create download task for: {title}")
@@ -397,13 +442,20 @@ def check_rss_feeds():
                     else:
                         logger.info(f"Auto-create disabled for rule {rule.name}, skipping: {entry.get('title', '')}")
                 
-                # Only update last_update_time if we actually created download tasks
+                # Update rule timestamps if we actually created download tasks
                 if last_download_time:
                     rule.last_update_time = last_download_time
+                    
+                    # Update download_after filter to prevent re-downloading the same items
+                    if latest_entry_date:
+                        # Set download_after to the latest entry's date to avoid re-downloading
+                        rule.download_after = latest_entry_date
+                        logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date}")
+                    
                     db.commit()
                     logger.info(f"Updated last_update_time for rule {rule.name} to {last_download_time}")
                 else:
-                    logger.debug(f"No downloads created for rule {rule.name}, last_update_time unchanged")
+                    logger.debug(f"No downloads created for rule {rule.name}, filters unchanged")
                 
                 logger.info(f"Completed checking rule: {rule.name}, processed {processed_count} tasks")
                 
@@ -449,6 +501,7 @@ def check_individual_rule(rule_id: int):
         # Process entries with proper filtering
         processed_count = 0
         last_download_time = None
+        latest_entry_date = None
         
         for entry in feed.entries:
             if processed_count >= rule.max_tasks:
@@ -472,19 +525,70 @@ def check_individual_rule(rule_id: int):
                 if success:
                     processed_count += 1
                     last_download_time = datetime.datetime.utcnow()  # Record when download was created
+                    
+                    # Extract and parse the entry's published date to update the filter
+                    raw_published = entry.get('published', '')
+                    if not raw_published:
+                        # Try to find date in other fields
+                        for key, value in entry.items():
+                            if isinstance(value, str) and ('2025' in value or '2024' in value) and 'T' in value:
+                                raw_published = value
+                                break
+                            elif isinstance(value, dict):
+                                for sub_key, sub_value in value.items():
+                                    if isinstance(sub_value, str) and ('2025' in sub_value or '2024' in sub_value):
+                                        raw_published = sub_value
+                                        break
+                                if raw_published:
+                                    break
+                    
+                    if raw_published:
+                        # Parse the date using the same logic as matches_filters
+                        parsed_date = None
+                        date_formats = [
+                            '%a, %d %b %Y %H:%M:%S %z',      # RFC 2822 with timezone
+                            '%a, %d %b %Y %H:%M:%S',         # RFC 2822 without timezone
+                            '%Y-%m-%dT%H:%M:%S.%f',          # Mikan ISO format with microseconds
+                            '%Y-%m-%dT%H:%M:%S',             # ISO format without microseconds
+                            '%Y-%m-%d %H:%M:%S',             # Simple format
+                            '%Y-%m-%dT%H:%M:%S%z',           # ISO with timezone
+                            '%Y-%m-%dT%H:%M:%SZ'             # ISO UTC
+                        ]
+                        
+                        for fmt in date_formats:
+                            try:
+                                parsed_date = datetime.datetime.strptime(raw_published, fmt)
+                                if parsed_date.tzinfo is None:
+                                    parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
+                                break
+                            except ValueError:
+                                continue
+                        
+                        if parsed_date:
+                            # Keep track of the latest entry date
+                            if latest_entry_date is None or parsed_date > latest_entry_date:
+                                latest_entry_date = parsed_date
+                    
                     logger.info(f"Successfully created download task for: {title}")
                 else:
                     logger.error(f"Failed to create download task for: {title}")
             else:
                 logger.warning(f"No torrent URL found for entry: {entry.get('title', '')}")
         
-        # Only update last_update_time if we actually created download tasks
+        # Update rule timestamps if we actually created download tasks
         if last_download_time:
             rule.last_update_time = last_download_time
+            
+            # Update download_after filter to prevent re-downloading the same items
+            if latest_entry_date:
+                # Set download_after to the latest entry's date to avoid re-downloading
+                rule.download_after = latest_entry_date
+                logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date}")
+            
             db.commit()
             logger.info(f"Updated last_update_time for rule {rule.name} to {last_download_time}")
         else:
-            logger.debug(f"No downloads created for rule {rule.name}, last_update_time unchanged")
+            logger.debug(f"No downloads created for rule {rule.name}, filters unchanged")
         
         logger.info(f"Manual check completed for rule: {rule.name}, processed {processed_count} tasks")
         
