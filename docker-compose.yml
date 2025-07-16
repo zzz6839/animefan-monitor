@@ -1,7 +1,7 @@
 services:
   backend:
     #build: ./backend
-    image: zzz6839/animefan-monitor-backend:latest
+    image: zzz6839/animefan-monitor-backend2:latest
     ports:
       - "58000:8000"
     volumes:
@@ -10,7 +10,7 @@ services:
 
   frontend:
     #build: ./frontend
-    image: zzz6839/animefan-monitor-frontend:latest
+    image: zzz6839/animefan-monitor-frontend2:latest
     ports:
       - "53000:80"
     depends_on:
