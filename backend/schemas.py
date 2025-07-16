@@ -52,3 +52,7 @@ class RSSItem(BaseModel):
 
 class RSSPreviewRequest(BaseModel):
     rss_url: str
+
+class RSSPreviewFilteredRequest(BaseModel):
+    rss_url: str
+    rule_id: int

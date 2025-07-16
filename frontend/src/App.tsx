@@ -151,13 +151,23 @@ function App() {
   const handleRowClick = (rule: Rule) => {
     setSelectedRule(rule);
     if (showPreview) {
-      fetchPreview(rule.rss_url);
+      fetchPreview(rule.rss_url, rule.id);
     }
   };
 
-  const fetchPreview = async (rssUrl: string) => {
+  const fetchPreview = async (rssUrl: string, ruleId?: number) => {
     try {
-      const response = await axios.post(`${API_BASE}/rss/preview`, { rss_url: rssUrl });
+      let response;
+      if (ruleId) {
+        // Use filtered preview when a rule is selected
+        response = await axios.post(`${API_BASE}/rss/preview_filtered`, { 
+          rss_url: rssUrl, 
+          rule_id: ruleId 
+        });
+      } else {
+        // Use unfiltered preview as fallback
+        response = await axios.post(`${API_BASE}/rss/preview`, { rss_url: rssUrl });
+      }
       setPreviewItems(response.data);
     } catch (error) {
       console.error('Error fetching preview:', error);
@@ -168,7 +178,7 @@ function App() {
   const handlePreviewToggle = (checked: boolean) => {
     setShowPreview(checked);
     if (checked && selectedRule) {
-      fetchPreview(selectedRule.rss_url);
+      fetchPreview(selectedRule.rss_url, selectedRule.id);
     } else {
       setPreviewItems([]);
     }

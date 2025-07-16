@@ -121,6 +121,63 @@ def preview_rss(request: schemas.RSSPreviewRequest):
         logger.error(f"Error parsing RSS: {e}")
         raise HTTPException(status_code=400, detail=f"Error parsing RSS: {str(e)}")
 
+# RSS preview with rule filtering endpoint
+@app.post("/rss/preview_filtered", response_model=List[schemas.RSSItem])
+def preview_rss_filtered(request: schemas.RSSPreviewFilteredRequest, db: Session = Depends(get_db)):
+    logger.debug(f"Previewing RSS with rule filtering: {request.rss_url}, rule_id: {request.rule_id}")
+    try:
+        # Get the rule for filtering
+        rule = crud.get_rule(db, rule_id=request.rule_id)
+        if not rule:
+            raise HTTPException(status_code=404, detail="Rule not found")
+        
+        feed = feedparser.parse(request.rss_url)
+        items = []
+        filtered_count = 0
+        
+        # Import the filtering function from scheduler
+        from scheduler import matches_filters
+        
+        for entry in feed.entries[:100]:  # Get more items since we'll filter them
+            # Apply rule filters first
+            if not matches_filters(entry, rule):
+                filtered_count += 1
+                continue
+            
+            # If we've reached the max_tasks limit, stop processing
+            if len(items) >= rule.max_tasks:
+                break
+                
+            # Extract basic info
+            title = entry.get('title', '')
+            published = entry.get('published', '')
+            
+            # Extract subtitle group from title
+            subtitle_group = extract_subtitle_group(title)
+            
+            # Extract file size from various sources
+            size = extract_file_size(entry, request.rss_url)
+            
+            # Format published date to be more user-friendly
+            formatted_date = format_published_date(published)
+            
+            item = schemas.RSSItem(
+                title=title,
+                link=entry.get('link', ''),
+                published=formatted_date,
+                size=size,
+                subtitle_group=subtitle_group,
+                task_exists=False  # TODO: Check if task already exists in Aria2
+            )
+            items.append(item)
+            
+        logger.info(f"Successfully parsed {len(items)} filtered items from RSS feed (filtered out {filtered_count} items)")
+        return items
+        
+    except Exception as e:
+        logger.error(f"Error parsing RSS with filtering: {e}")
+        raise HTTPException(status_code=400, detail=f"Error parsing RSS with filtering: {str(e)}")
+
 def extract_subtitle_group(title: str) -> str:
     """Extract subtitle group from title"""
     try:
