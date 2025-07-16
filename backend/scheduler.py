@@ -446,11 +446,14 @@ def check_rss_feeds():
                 if last_download_time:
                     rule.last_update_time = last_download_time
                     
-                    # Update download_after filter to prevent re-downloading the same items
+                    # Update download_after filter to the latest entry's published date to prevent re-downloading
                     if latest_entry_date:
-                        # Set download_after to the latest entry's date to avoid re-downloading
                         rule.download_after = latest_entry_date
-                        logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date}")
+                        logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (latest entry date)")
+                    else:
+                        # Fallback: use current time if we couldn't parse entry dates
+                        rule.download_after = last_download_time
+                        logger.info(f"Updated download_after filter for rule {rule.name} to {last_download_time} (current time as fallback)")
                     
                     db.commit()
                     logger.info(f"Updated last_update_time for rule {rule.name} to {last_download_time}")
@@ -579,11 +582,14 @@ def check_individual_rule(rule_id: int):
         if last_download_time:
             rule.last_update_time = last_download_time
             
-            # Update download_after filter to prevent re-downloading the same items
+            # Update download_after filter to the latest entry's published date to prevent re-downloading
             if latest_entry_date:
-                # Set download_after to the latest entry's date to avoid re-downloading
                 rule.download_after = latest_entry_date
-                logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date}")
+                logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (latest entry date)")
+            else:
+                # Fallback: use current time if we couldn't parse entry dates
+                rule.download_after = last_download_time
+                logger.info(f"Updated download_after filter for rule {rule.name} to {last_download_time} (current time as fallback)")
             
             db.commit()
             logger.info(f"Updated last_update_time for rule {rule.name} to {last_download_time}")
