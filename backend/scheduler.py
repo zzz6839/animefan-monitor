@@ -287,12 +287,13 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
                         elif parsed_date.tzinfo is not None and filter_date.tzinfo is None:
                             filter_date = filter_date.replace(tzinfo=datetime.timezone.utc)
                         
-                        # Apply the filter: exclude items older than the specified date
-                        if parsed_date < filter_date:
-                            logger.debug(f"Entry {title} is too old: {parsed_date} < {filter_date}")
+                        # Apply the filter: exclude items older than or equal to the specified date
+                        # Use <= to be more strict and prevent re-downloading the same episode
+                        if parsed_date <= filter_date:
+                            logger.debug(f"Entry {title} is too old: {parsed_date} <= {filter_date}")
                             return False
                         else:
-                            logger.debug(f"Entry {title} passes date filter: {parsed_date} >= {filter_date}")
+                            logger.debug(f"Entry {title} passes date filter: {parsed_date} > {filter_date}")
                     else:
                         logger.debug(f"Could not parse date for entry: {title} - {raw_published}")
                         # If we can't parse the date, include the item (fail-safe)
@@ -448,8 +449,13 @@ def check_rss_feeds():
                     
                     # Update download_after filter to the latest entry's published date to prevent re-downloading
                     if latest_entry_date:
-                        rule.download_after = latest_entry_date
-                        logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (latest entry date)")
+                        # Make sure the date has timezone info for proper comparison later
+                        if latest_entry_date.tzinfo is None:
+                            latest_entry_date = latest_entry_date.replace(tzinfo=datetime.timezone.utc)
+                        
+                        # Add a small offset (1 second) to ensure we don't re-download the same episode
+                        rule.download_after = latest_entry_date + datetime.timedelta(seconds=1)
+                        logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (with 1 second offset)")
                     else:
                         # Fallback: use current time if we couldn't parse entry dates
                         rule.download_after = last_download_time
@@ -584,8 +590,13 @@ def check_individual_rule(rule_id: int):
             
             # Update download_after filter to the latest entry's published date to prevent re-downloading
             if latest_entry_date:
-                rule.download_after = latest_entry_date
-                logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (latest entry date)")
+                # Make sure the date has timezone info for proper comparison later
+                if latest_entry_date.tzinfo is None:
+                    latest_entry_date = latest_entry_date.replace(tzinfo=datetime.timezone.utc)
+                
+                # Add a small offset (1 second) to ensure we don't re-download the same episode
+                rule.download_after = latest_entry_date + datetime.timedelta(seconds=1)
+                logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (with 1 second offset)")
             else:
                 # Fallback: use current time if we couldn't parse entry dates
                 rule.download_after = last_download_time
