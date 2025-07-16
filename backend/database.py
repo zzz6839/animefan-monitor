@@ -24,7 +24,7 @@ class Rule(Base):
     enabled = Column(Boolean, default=True)
     rss_url = Column(String)
     max_tasks = Column(Integer, default=15)
-    creation_time = Column(DateTime, default=datetime.datetime.utcnow)
+    creation_time = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     last_update_time = Column(DateTime, nullable=True)
     subtitle_group = Column(String, default="<全部>")
     download_after = Column(DateTime, nullable=True)

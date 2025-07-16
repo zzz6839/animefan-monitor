@@ -1,11 +1,13 @@
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 import logging
 import feedparser
 import requests
 import json
 from typing import List
+import datetime
 
 import crud
 import schemas
@@ -16,6 +18,16 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 Base.metadata.create_all(bind=engine)
+
+# Custom JSON encoder to handle timezone-aware datetime serialization
+def custom_json_encoder(obj):
+    """Custom JSON encoder that ensures datetime objects include timezone info"""
+    if isinstance(obj, datetime.datetime):
+        # If the datetime is naive (no timezone), assume it's UTC
+        if obj.tzinfo is None:
+            obj = obj.replace(tzinfo=datetime.timezone.utc)
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 app = FastAPI()
 
@@ -46,12 +58,32 @@ def get_db():
 @app.post("/rules/", response_model=schemas.Rule)
 def create_rule(rule: schemas.RuleCreate, db: Session = Depends(get_db)):
     logger.debug(f"Creating rule: {rule.name}")
-    return crud.create_rule(db=db, rule=rule)
+    db_rule = crud.create_rule(db=db, rule=rule)
+    
+    # Convert naive datetime objects to timezone-aware for proper frontend display
+    if db_rule.creation_time and db_rule.creation_time.tzinfo is None:
+        db_rule.creation_time = db_rule.creation_time.replace(tzinfo=datetime.timezone.utc)
+    if db_rule.last_update_time and db_rule.last_update_time.tzinfo is None:
+        db_rule.last_update_time = db_rule.last_update_time.replace(tzinfo=datetime.timezone.utc)
+    if db_rule.download_after and db_rule.download_after.tzinfo is None:
+        db_rule.download_after = db_rule.download_after.replace(tzinfo=datetime.timezone.utc)
+    
+    return db_rule
 
 @app.get("/rules/", response_model=List[schemas.Rule])
 def read_rules(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     rules = crud.get_rules(db, skip=skip, limit=limit)
     logger.debug(f"Retrieved {len(rules)} rules")
+    
+    # Convert naive datetime objects to timezone-aware for proper frontend display
+    for rule in rules:
+        if rule.creation_time and rule.creation_time.tzinfo is None:
+            rule.creation_time = rule.creation_time.replace(tzinfo=datetime.timezone.utc)
+        if rule.last_update_time and rule.last_update_time.tzinfo is None:
+            rule.last_update_time = rule.last_update_time.replace(tzinfo=datetime.timezone.utc)
+        if rule.download_after and rule.download_after.tzinfo is None:
+            rule.download_after = rule.download_after.replace(tzinfo=datetime.timezone.utc)
+    
     return rules
 
 @app.get("/rules/{rule_id}", response_model=schemas.Rule)
@@ -59,12 +91,31 @@ def read_rule(rule_id: int, db: Session = Depends(get_db)):
     db_rule = crud.get_rule(db, rule_id=rule_id)
     if db_rule is None:
         raise HTTPException(status_code=404, detail="Rule not found")
+    
+    # Convert naive datetime objects to timezone-aware for proper frontend display
+    if db_rule.creation_time and db_rule.creation_time.tzinfo is None:
+        db_rule.creation_time = db_rule.creation_time.replace(tzinfo=datetime.timezone.utc)
+    if db_rule.last_update_time and db_rule.last_update_time.tzinfo is None:
+        db_rule.last_update_time = db_rule.last_update_time.replace(tzinfo=datetime.timezone.utc)
+    if db_rule.download_after and db_rule.download_after.tzinfo is None:
+        db_rule.download_after = db_rule.download_after.replace(tzinfo=datetime.timezone.utc)
+    
     return db_rule
 
 @app.put("/rules/{rule_id}", response_model=schemas.Rule)
 def update_rule(rule_id: int, rule: schemas.RuleCreate, db: Session = Depends(get_db)):
     logger.debug(f"Updating rule {rule_id}")
-    return crud.update_rule(db=db, rule_id=rule_id, rule=rule)
+    db_rule = crud.update_rule(db=db, rule_id=rule_id, rule=rule)
+    
+    # Convert naive datetime objects to timezone-aware for proper frontend display
+    if db_rule and db_rule.creation_time and db_rule.creation_time.tzinfo is None:
+        db_rule.creation_time = db_rule.creation_time.replace(tzinfo=datetime.timezone.utc)
+    if db_rule and db_rule.last_update_time and db_rule.last_update_time.tzinfo is None:
+        db_rule.last_update_time = db_rule.last_update_time.replace(tzinfo=datetime.timezone.utc)
+    if db_rule and db_rule.download_after and db_rule.download_after.tzinfo is None:
+        db_rule.download_after = db_rule.download_after.replace(tzinfo=datetime.timezone.utc)
+    
+    return db_rule
 
 @app.delete("/rules/{rule_id}")
 def delete_rule(rule_id: int, db: Session = Depends(get_db)):
@@ -80,6 +131,15 @@ def toggle_rule(rule_id: int, db: Session = Depends(get_db)):
     rule = crud.toggle_rule(db=db, rule_id=rule_id)
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
+    
+    # Convert naive datetime objects to timezone-aware for proper frontend display
+    if rule.creation_time and rule.creation_time.tzinfo is None:
+        rule.creation_time = rule.creation_time.replace(tzinfo=datetime.timezone.utc)
+    if rule.last_update_time and rule.last_update_time.tzinfo is None:
+        rule.last_update_time = rule.last_update_time.replace(tzinfo=datetime.timezone.utc)
+    if rule.download_after and rule.download_after.tzinfo is None:
+        rule.download_after = rule.download_after.replace(tzinfo=datetime.timezone.utc)
+    
     return rule
 
 # RSS preview endpoint
@@ -315,8 +375,8 @@ def format_published_date(published: str) -> str:
             logger.debug(f"Could not parse date, returning original: {published}")
             return published
         
-        # For better frontend filtering, return ISO format instead of relative time
-        # This allows the frontend to do accurate date comparisons
+        # For better frontend filtering, return ISO format with timezone info
+        # This allows the frontend to do accurate date comparisons and timezone conversion
         return parsed_date.isoformat()
         
         # Original relative time formatting (commented out for better filtering)
