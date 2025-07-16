@@ -63,6 +63,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
   const [downloadLatest, setDownloadLatest] = useState(false);
   const [maxSizeMb, setMaxSizeMb] = useState('');
   const [monitorInterval, setMonitorInterval] = useState(10);
+  const [subtitleGroup, setSubtitleGroup] = useState("<全部>");
   const [previewItems, setPreviewItems] = useState<RSSItem[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [filterUpdateTrigger, setFilterUpdateTrigger] = useState(0);
@@ -80,6 +81,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
         setDownloadLatest(rule.download_latest ?? false);
         setMaxSizeMb(rule.max_size_mb?.toString() || '');
         setMonitorInterval(rule.monitor_interval ?? 10);
+        setSubtitleGroup(rule.subtitle_group || "<全部>");
         if (rule.rss_url) {
           fetchPreview(rule.rss_url);
         }
@@ -108,6 +110,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
     setDownloadLatest(false);
     setMaxSizeMb('');
     setMonitorInterval(10);
+    setSubtitleGroup("<全部>");
     setPreviewItems([]);
   };
 
@@ -282,6 +285,23 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
   };
 
   const handleSave = async () => {
+    // Always auto-detect subtitle group from preview items
+    let finalSubtitleGroup = "<全部>";
+    if (filteredPreviewItems.length > 0) {
+      // Get the most common subtitle group from filtered items
+      const subtitleGroups = filteredPreviewItems.map(item => item.subtitle_group);
+      const groupCounts = subtitleGroups.reduce((acc, group) => {
+        acc[group] = (acc[group] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      // Find the most frequent subtitle group (excluding "未知字幕组")
+      const validGroups = Object.entries(groupCounts).filter(([group]) => group !== "未知字幕组");
+      if (validGroups.length > 0) {
+        finalSubtitleGroup = validGroups.reduce((a, b) => a[1] > b[1] ? a : b)[0];
+      }
+    }
+
     const ruleData = {
       name,
       rss_url: rssUrl,
@@ -292,7 +312,7 @@ function EditRule({ open, onClose, rule }: EditRuleProps) {
       download_latest: downloadLatest,
       max_size_mb: maxSizeMb ? parseInt(maxSizeMb) : null,
       monitor_interval: monitorInterval,
-      subtitle_group: "<全部>"
+      subtitle_group: finalSubtitleGroup
     };
 
     try {

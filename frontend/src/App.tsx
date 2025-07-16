@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  Container, 
-  Typography, 
-  Button, 
-  Checkbox, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
+import {
+  Container,
+  Typography,
+  Button,
+  Checkbox,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Paper,
   Box,
   FormControlLabel,
@@ -160,9 +160,9 @@ function App() {
       let response;
       if (ruleId) {
         // Use filtered preview when a rule is selected
-        response = await axios.post(`${API_BASE}/rss/preview_filtered`, { 
-          rss_url: rssUrl, 
-          rule_id: ruleId 
+        response = await axios.post(`${API_BASE}/rss/preview_filtered`, {
+          rss_url: rssUrl,
+          rule_id: ruleId
         });
       } else {
         // Use unfiltered preview as fallback
@@ -185,59 +185,61 @@ function App() {
   };
 
   return (
-    <Container maxWidth="xl">
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" gutterBottom>
-            自动下载
-          </Typography>
-          <IconButton onClick={toggleDarkMode} color="inherit">
-            {darkMode ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
-        </Box>
-        
-        <Box sx={{ mb: 2 }}>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={handleRunRules}
-            sx={{ mr: 1 }}
-          >
-            运行规则
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleCreateRule}
-            sx={{ mr: 1 }}
-          >
-            新建自动下载规则
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleEditRule}
-            sx={{ mr: 1 }}
-          >
-            编辑规则
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleDeleteRules}
-            sx={{ mr: 1 }}
-          >
-            删除规则
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={() => setAria2SettingsOpen(true)}
-          >
-            下载器设置
-          </Button>
-        </Box>
+    <Container maxWidth="xl" sx={{ py: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+          自动下载 (作品监控列表)
+        </Typography>
+        <IconButton onClick={toggleDarkMode} color="inherit">
+          {darkMode ? <Brightness7 /> : <Brightness4 />}
+        </IconButton>
+      </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={handleRunRules}
+          disabled={selectedRuleIds.length === 0}
+        >
+          运行规则
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleCreateRule}
+        >
+          新建自动下载规则
+        </Button>
+        <Button
+          variant="contained"
+          color="info"
+          onClick={handleEditRule}
+          disabled={selectedRuleIds.length !== 1}
+        >
+          编辑规则
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={handleDeleteRules}
+          disabled={selectedRuleIds.length === 0}
+        >
+          删除规则
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={() => setAria2SettingsOpen(true)}
+        >
+          下载器设置
+        </Button>
+      </Box>
+
+      <TableContainer component={Paper} sx={{ mb: 2 }}>
+        <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">
+              <TableCell padding="checkbox" sx={{ width: 50 }}>
                 <Checkbox
                   indeterminate={selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length}
                   checked={rules.length > 0 && selectedRuleIds.length === rules.length}
@@ -248,25 +250,31 @@ function App() {
                       setSelectedRuleIds([]);
                     }
                   }}
+                  title="全选/取消全选"
                 />
               </TableCell>
-              <TableCell>启用</TableCell>
-              <TableCell>名称</TableCell>
-              <TableCell>字幕组</TableCell>
-              <TableCell>RSS地址</TableCell>
-              <TableCell>最多创建任务数</TableCell>
-              <TableCell>创建时间</TableCell>
-              <TableCell>最近更新时间</TableCell>
+              <TableCell sx={{ width: 80 }}>启用</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>名称</TableCell>
+              <TableCell sx={{ width: 100 }}>字幕组</TableCell>
+              <TableCell sx={{ minWidth: 300 }}>RSS地址</TableCell>
+              <TableCell sx={{ width: 100 }}>最多任务数</TableCell>
+              <TableCell sx={{ width: 150 }}>创建时间</TableCell>
+              <TableCell sx={{ width: 150 }}>最近更新</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {rules.map(rule => (
-              <TableRow 
+              <TableRow
                 key={rule.id}
                 hover
                 selected={selectedRule?.id === rule.id}
                 onClick={() => handleRowClick(rule)}
-                sx={{ cursor: 'pointer' }}
+                sx={{
+                  cursor: 'pointer',
+                  '&.Mui-selected': {
+                    backgroundColor: 'action.selected',
+                  }
+                }}
               >
                 <TableCell padding="checkbox">
                   <Checkbox
@@ -278,23 +286,59 @@ function App() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Checkbox 
-                    checked={rule.enabled} 
+                  <Checkbox
+                    checked={rule.enabled}
                     onChange={(e) => {
                       e.stopPropagation();
                       handleRuleToggle(rule.id);
                     }}
+                    color="success"
                   />
                 </TableCell>
-                <TableCell>{rule.name}</TableCell>
-                <TableCell>{rule.subtitle_group}</TableCell>
-                <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {rule.rss_url}
+                <TableCell sx={{ fontWeight: rule.enabled ? 'bold' : 'normal' }}>
+                  {rule.name}
                 </TableCell>
-                <TableCell>{rule.max_tasks}</TableCell>
-                <TableCell>{new Date(rule.creation_time).toLocaleString('zh-CN')}</TableCell>
                 <TableCell>
-                  {rule.last_update_time ? new Date(rule.last_update_time).toLocaleString('zh-CN') : '未知'}
+                  <Typography variant="body2" color={rule.subtitle_group === "<全部>" ? "text.secondary" : "text.primary"}>
+                    {rule.subtitle_group === "<全部>" ? "全部" : rule.subtitle_group}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      maxWidth: 300,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title={rule.rss_url}
+                  >
+                    {rule.rss_url}
+                  </Typography>
+                </TableCell>
+                <TableCell align="center">{rule.max_tasks}</TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {new Date(rule.creation_time).toLocaleDateString('zh-CN')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {new Date(rule.creation_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  {rule.last_update_time ? (
+                    <>
+                      <Typography variant="body2">
+                        {new Date(rule.last_update_time).toLocaleDateString('zh-CN')}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(rule.last_update_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">未知</Typography>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -316,42 +360,99 @@ function App() {
 
       {showPreview && selectedRule && (
         <Box sx={{ mt: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            预览: {selectedRule.name}
-          </Typography>
-          <TableContainer component={Paper}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>标题</TableCell>
-                  <TableCell>任务已存在</TableCell>
-                  <TableCell>类型</TableCell>
-                  <TableCell>字幕组</TableCell>
-                  <TableCell>大小</TableCell>
-                  <TableCell>发布日期</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {previewItems.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {item.title}
-                    </TableCell>
-                    <TableCell>{item.task_exists ? '是' : '否'}</TableCell>
-                    <TableCell>视频</TableCell>
-                    <TableCell>{item.subtitle_group}</TableCell>
-                    <TableCell>{item.size}</TableCell>
-                    <TableCell>{item.published}</TableCell>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              预览: {selectedRule.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {previewItems.length > 0 ? `显示 ${previewItems.length} 个符合条件的项目` : '无符合条件的项目'}
+            </Typography>
+          </Box>
+
+          {previewItems.length > 0 ? (
+            <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ minWidth: 400 }}>标题</TableCell>
+                    <TableCell sx={{ width: 100 }}>任务状态</TableCell>
+                    <TableCell sx={{ width: 80 }}>类型</TableCell>
+                    <TableCell sx={{ width: 120 }}>字幕组</TableCell>
+                    <TableCell sx={{ width: 100 }}>大小</TableCell>
+                    <TableCell sx={{ width: 150 }}>发布时间</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {previewItems.map((item, index) => (
+                    <TableRow key={index} hover>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            lineHeight: 1.4
+                          }}
+                          title={item.title}
+                        >
+                          {item.title}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          color={item.task_exists ? "success.main" : "text.secondary"}
+                          sx={{ fontWeight: item.task_exists ? 'bold' : 'normal' }}
+                        >
+                          {item.task_exists ? '已存在' : '新任务'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="primary">
+                          视频
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          color={item.subtitle_group === "未知字幕组" ? "text.secondary" : "text.primary"}
+                        >
+                          {item.subtitle_group}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {item.size}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {item.published && item.published !== "未知时间" ?
+                            new Date(item.published).toLocaleDateString('zh-CN') :
+                            item.published
+                          }
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="body1" color="text.secondary">
+                {selectedRule ? '该规则当前没有符合条件的项目' : '请选择一个规则查看预览'}
+              </Typography>
+            </Paper>
+          )}
         </Box>
       )}
 
-      <EditRule 
-        open={editRuleOpen} 
+      <EditRule
+        open={editRuleOpen}
         onClose={() => {
           setEditRuleOpen(false);
           setEditingRule(null);
@@ -359,10 +460,10 @@ function App() {
         }}
         rule={editingRule}
       />
-      
-      <Aria2Settings 
-        open={aria2SettingsOpen} 
-        onClose={() => setAria2SettingsOpen(false)} 
+
+      <Aria2Settings
+        open={aria2SettingsOpen}
+        onClose={() => setAria2SettingsOpen(false)}
       />
 
       <Snackbar
@@ -370,8 +471,8 @@ function App() {
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
         >
           {snackbar.message}
