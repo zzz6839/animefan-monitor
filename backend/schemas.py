@@ -21,7 +21,7 @@ class Rule(RuleBase):
     last_update_time: Optional[datetime.datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Aria2ConfigBase(BaseModel):
     host: str
@@ -38,4 +38,4 @@ class Aria2Config(Aria2ConfigBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
