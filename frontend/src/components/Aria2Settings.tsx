@@ -108,7 +108,7 @@ function Aria2Settings({ open, onClose }: Aria2SettingsProps) {
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Aria2服务器的 RPC 地址/路径:
           </Typography>
-          <Typography variant="body1" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', p: 1, borderRadius: 1 }}>
+          <Typography variant="body1" sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', p: 1, borderRadius: 1 }}>
             {getRpcUrl()}
           </Typography>
           <Box sx={{ mt: 1 }}>

@@ -15,8 +15,11 @@ import {
   Box,
   FormControlLabel,
   Alert,
-  Snackbar
+  Snackbar,
+  IconButton
 } from '@mui/material';
+import { Brightness4, Brightness7 } from '@mui/icons-material';
+import { useTheme } from './contexts/ThemeContext';
 import EditRule from './components/EditRule';
 import Aria2Settings from './components/Aria2Settings';
 
@@ -50,6 +53,7 @@ function App() {
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [aria2SettingsOpen, setAria2SettingsOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const { darkMode, toggleDarkMode } = useTheme();
 
   const API_BASE = 'http://localhost:58000';
 
@@ -173,47 +177,52 @@ function App() {
 
   return (
     <Container maxWidth="xl">
-      <Typography variant="h4" gutterBottom>
-        自动下载
-      </Typography>
-      
-      <Box sx={{ mb: 2 }}>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleRunRules}
-          sx={{ mr: 1 }}
-        >
-          运行规则
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={handleCreateRule}
-          sx={{ mr: 1 }}
-        >
-          新建自动下载规则
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={handleEditRule}
-          sx={{ mr: 1 }}
-        >
-          编辑规则
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={handleDeleteRules}
-          sx={{ mr: 1 }}
-        >
-          删除规则
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={() => setAria2SettingsOpen(true)}
-        >
-          下载器设置
-        </Button>
-      </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4" gutterBottom>
+            自动下载
+          </Typography>
+          <IconButton onClick={toggleDarkMode} color="inherit">
+            {darkMode ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
+        </Box>
+        
+        <Box sx={{ mb: 2 }}>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleRunRules}
+            sx={{ mr: 1 }}
+          >
+            运行规则
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleCreateRule}
+            sx={{ mr: 1 }}
+          >
+            新建自动下载规则
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleEditRule}
+            sx={{ mr: 1 }}
+          >
+            编辑规则
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleDeleteRules}
+            sx={{ mr: 1 }}
+          >
+            删除规则
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={() => setAria2SettingsOpen(true)}
+          >
+            下载器设置
+          </Button>
+        </Box>
 
       <TableContainer component={Paper}>
         <Table>
