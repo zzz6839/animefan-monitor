@@ -1,7 +1,7 @@
-fastapi
-uvicorn[standard]
-SQLAlchemy
-pydantic
-python-multipart
-apscheduler
-feedparser
+fastapi>=0.115.0,<0.116.0
+uvicorn[standard]>=0.32.0
+SQLAlchemy>=2.0.0,<3.0.0
+pydantic>=2.7.0,<3.0.0
+python-multipart>=0.0.12
+apscheduler>=3.10.0
+feedparser>=6.0.0

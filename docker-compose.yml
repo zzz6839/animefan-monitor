@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   backend:
-    build: ./backend
+    #build: ./backend
     image: zzz6839/animefan-monitor-backend:latest
     ports:
-      - "58000:58000"
+      - "58000:8000"
     volumes:
       - ./backend_data:/app/data
     restart: unless-stopped
@@ -14,7 +12,7 @@ services:
     #build: ./frontend
     image: zzz6839/animefan-monitor-frontend:latest
     ports:
-      - "53000:53000"
+      - "53000:80"
     depends_on:
       - backend
     restart: unless-stopped
