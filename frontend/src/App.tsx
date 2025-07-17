@@ -353,269 +353,252 @@ function App() {
 
         </Box>
 
-        {/* Main layout with table and right panel */}
-        <Box sx={{ position: 'relative' }}>
-          {/* Main Table */}
-          <TableContainer component={Paper} sx={{ mb: 2 }}>
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    padding="checkbox"
-                    sx={{
-                      width: 50,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed'
-                    }}
-                  >
-                    <Checkbox
-                      indeterminate={selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length}
-                      checked={sortedRules.length > 0 && selectedRuleIds.length === sortedRules.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedRuleIds(sortedRules.map(r => r.id));
-                        } else {
-                          setSelectedRuleIds([]);
-                        }
+        {/* Main layout with optional right panel */}
+        <Box sx={{ display: 'flex', gap: 3 }}>
+          {/* Main Table - Always full width */}
+          <Box sx={{ flex: 1 }}>
+            <TableContainer component={Paper} sx={{ mb: 2 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell
+                      padding="checkbox"
+                      sx={{
+                        width: 50,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed'
                       }}
-                      title={t('table.select_all')}
-                    />
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: 80,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'enabled'}
-                      direction={sortBy === 'enabled' ? sortOrder : 'asc'}
-                      onClick={() => handleSort('enabled')}
                     >
-                      {t('table.enabled')}
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      minWidth: 120,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'name'}
-                      direction={sortBy === 'name' ? sortOrder : 'asc'}
-                      onClick={() => handleSort('name')}
-                    >
-                      {t('table.name')}
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: 100,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'subtitle_group'}
-                      direction={sortBy === 'subtitle_group' ? sortOrder : 'asc'}
-                      onClick={() => handleSort('subtitle_group')}
-                    >
-                      {t('table.subtitle_group')}
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      minWidth: 300,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {t('table.rss_url')}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: 100,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'max_tasks'}
-                      direction={sortBy === 'max_tasks' ? sortOrder : 'asc'}
-                      onClick={() => handleSort('max_tasks')}
-                    >
-                      {t('table.max_tasks')}
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: 150,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'creation_time'}
-                      direction={sortBy === 'creation_time' ? sortOrder : 'asc'}
-                      onClick={() => handleSort('creation_time')}
-                    >
-                      {t('table.creation_time')}
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      width: 150,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <TableSortLabel
-                      active={sortBy === 'last_update_time'}
-                      direction={sortBy === 'last_update_time' ? sortOrder : 'asc'}
-                      onClick={() => handleSort('last_update_time')}
-                    >
-                      {t('table.last_update')}
-                    </TableSortLabel>
-                  </TableCell>
-                  {/* Preview checkbox column aligned with table header */}
-                  <TableCell
-                    sx={{
-                      width: 200,
-                      writingMode: 'horizontal-tb',
-                      textOrientation: 'mixed',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={showPreview}
-                          onChange={(e) => handlePreviewToggle(e.target.checked)}
-                        />
-                      }
-                      label={t('preview.label')}
-                    />
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sortedRules.map(rule => (
-                  <TableRow
-                    key={rule.id}
-                    hover
-                    selected={selectedRule?.id === rule.id}
-                    onClick={() => handleRowClick(rule)}
-                    sx={{
-                      cursor: 'pointer',
-                      '&.Mui-selected': {
-                        backgroundColor: 'action.selected',
-                      }
-                    }}
-                  >
-                    <TableCell padding="checkbox">
                       <Checkbox
-                        checked={selectedRuleIds.includes(rule.id)}
+                        indeterminate={selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length}
+                        checked={sortedRules.length > 0 && selectedRuleIds.length === sortedRules.length}
                         onChange={(e) => {
-                          e.stopPropagation();
-                          handleRuleSelect(rule.id, e.target.checked);
+                          if (e.target.checked) {
+                            setSelectedRuleIds(sortedRules.map(r => r.id));
+                          } else {
+                            setSelectedRuleIds([]);
+                          }
                         }}
+                        title={t('table.select_all')}
                       />
                     </TableCell>
-                    <TableCell>
-                      <Checkbox
-                        checked={rule.enabled}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleRuleToggle(rule.id);
-                        }}
-                        color="success"
-                      />
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: rule.enabled ? 'bold' : 'normal' }}>
-                      {rule.name}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color={rule.subtitle_group === "<全部>" ? "text.secondary" : "text.primary"}>
-                        {rule.subtitle_group === "<全部>" ? t('status.all_groups') : rule.subtitle_group}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          maxWidth: 300,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                        title={rule.rss_url}
+                    <TableCell
+                      sx={{
+                        width: 80,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'enabled'}
+                        direction={sortBy === 'enabled' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('enabled')}
                       >
-                        {rule.rss_url}
-                      </Typography>
+                        {t('table.enabled')}
+                      </TableSortLabel>
                     </TableCell>
-                    <TableCell align="center">{rule.max_tasks}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {formatDate(rule.creation_time)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatTime(rule.creation_time)}
-                      </Typography>
+                    <TableCell
+                      sx={{
+                        minWidth: 120,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'name'}
+                        direction={sortBy === 'name' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('name')}
+                      >
+                        {t('table.name')}
+                      </TableSortLabel>
                     </TableCell>
-                    <TableCell>
-                      {rule.last_update_time ? (
-                        <>
-                          <Typography variant="body2">
-                            {formatDate(rule.last_update_time)}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {formatTime(rule.last_update_time)}
-                          </Typography>
-                        </>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">{t('status.unknown')}</Typography>
-                      )}
+                    <TableCell
+                      sx={{
+                        width: 100,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'subtitle_group'}
+                        direction={sortBy === 'subtitle_group' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('subtitle_group')}
+                      >
+                        {t('table.subtitle_group')}
+                      </TableSortLabel>
                     </TableCell>
-                    <TableCell>
-                      {/* Empty cell for preview column in data rows */}
+                    <TableCell
+                      sx={{
+                        minWidth: showPreview ? 200 : 300,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {t('table.rss_url')}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 100,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'max_tasks'}
+                        direction={sortBy === 'max_tasks' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('max_tasks')}
+                      >
+                        {t('table.max_tasks')}
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 150,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'creation_time'}
+                        direction={sortBy === 'creation_time' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('creation_time')}
+                      >
+                        {t('table.creation_time')}
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        width: 150,
+                        writingMode: 'horizontal-tb',
+                        textOrientation: 'mixed',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <TableSortLabel
+                        active={sortBy === 'last_update_time'}
+                        direction={sortBy === 'last_update_time' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('last_update_time')}
+                      >
+                        {t('table.last_update')}
+                      </TableSortLabel>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {sortedRules.map(rule => (
+                    <TableRow
+                      key={rule.id}
+                      hover
+                      selected={selectedRule?.id === rule.id}
+                      onClick={() => handleRowClick(rule)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&.Mui-selected': {
+                          backgroundColor: 'action.selected',
+                        }
+                      }}
+                    >
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={selectedRuleIds.includes(rule.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleRuleSelect(rule.id, e.target.checked);
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={rule.enabled}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleRuleToggle(rule.id);
+                          }}
+                          color="success"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: rule.enabled ? 'bold' : 'normal' }}>
+                        {rule.name}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color={rule.subtitle_group === "<全部>" ? "text.secondary" : "text.primary"}>
+                          {rule.subtitle_group === "<全部>" ? t('status.all_groups') : rule.subtitle_group}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            maxWidth: showPreview ? 200 : 300,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={rule.rss_url}
+                        >
+                          {rule.rss_url}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">{rule.max_tasks}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {formatDate(rule.creation_time)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatTime(rule.creation_time)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {rule.last_update_time ? (
+                          <>
+                            <Typography variant="body2">
+                              {formatDate(rule.last_update_time)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatTime(rule.last_update_time)}
+                            </Typography>
+                          </>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">{t('status.unknown')}</Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-          {/* Right Panel - Preview area positioned absolutely */}
-          {showPreview && (
-            <Box
-              sx={{
-                position: 'fixed',
-                top: 72, // Align with theme switcher (16px top + 56px height)
-                right: 16, // Same as theme switcher
-                width: '400px',
-                height: 'calc(100vh - 88px)', // Full height minus top offset
-                zIndex: 1000,
-                pointerEvents: 'auto'
-              }}
-            >
-              <Paper sx={{ 
-                p: 2, 
-                height: '100%', 
-                overflow: 'auto',
-                border: '2px dashed',
-                borderColor: 'primary.main',
-                borderRadius: 2
-              }}>
+          </Box>
+
+          {/* Right Panel - Preview with toggle */}
+          <Box sx={{ width: showPreview ? '500px' : 'auto', flexShrink: 0 }}>
+            {/* Preview toggle checkbox aligned with table header */}
+            <Box sx={{
+              height: '56px', // Match table header height
+              display: 'flex',
+              alignItems: 'center',
+              pl: 2,
+              mb: 2
+            }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showPreview}
+                    onChange={(e) => handlePreviewToggle(e.target.checked)}
+                  />
+                }
+                label={t('preview.label')}
+              />
+            </Box>
+
+            {showPreview && (
+              <Paper sx={{ p: 2, height: '600px', overflow: 'auto', position: 'sticky', top: 16 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6">
                     {t('preview.title')}
@@ -640,7 +623,7 @@ function App() {
                     </Typography>
 
                     {previewItems.length > 0 ? (
-                      <Box sx={{ maxHeight: 'calc(100% - 120px)', overflow: 'auto' }}>
+                      <Box sx={{ maxHeight: '500px', overflow: 'auto' }}>
                         {previewItems.map((item, index) => (
                           <Box key={index} sx={{ mb: 2, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                             <Typography
@@ -694,8 +677,8 @@ function App() {
                   </Box>
                 )}
               </Paper>
-            </Box>
-          )}
+            )}
+          </Box>
         </Box>
 
         <EditRule
