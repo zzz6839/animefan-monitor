@@ -353,10 +353,10 @@ function App() {
 
         </Box>
 
-        {/* Two-panel layout: Table on left, Preview on right */}
-        <Grid container spacing={3}>
-          {/* Left Panel - Main Table */}
-          <Grid item xs={12} md={showPreview ? 8 : 12}>
+        {/* Main layout with optional right panel */}
+        <Box sx={{ display: 'flex', gap: 3 }}>
+          {/* Main Table - Always full width */}
+          <Box sx={{ flex: 1 }}>
             <TableContainer component={Paper} sx={{ mb: 2 }}>
               <Table size="small" stickyHeader>
                 <TableHead>
@@ -574,105 +574,114 @@ function App() {
               </Table>
             </TableContainer>
 
-            {/* Preview toggle checkbox - moved to left panel */}
-            <Box sx={{ mt: 2 }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={showPreview}
-                    onChange={(e) => handlePreviewToggle(e.target.checked)}
-                  />
-                }
-                label={t('preview.label')}
-              />
-            </Box>
-          </Grid>
+          </Box>
 
-          {/* Right Panel - Preview */}
-          {showPreview && (
-            <Grid item xs={12} md={4}>
-              <Paper sx={{ p: 2, height: '600px', overflow: 'auto', position: 'sticky', top: 16 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    {t('preview.title')}
-                  </Typography>
-                  {selectedRule && (
-                    <Chip
-                      size="small"
-                      color="primary"
-                      label={t('preview.filtered')}
-                      sx={{ fontSize: '0.7rem', ml: 1 }}
+          {/* Right Panel - Preview with toggle */}
+          <Box sx={{ width: '400px', flexShrink: 0 }}>
+            <Paper sx={{ p: 2, height: '600px', overflow: 'auto', position: 'sticky', top: 16 }}>
+              {/* Preview toggle checkbox at the top of right panel */}
+              <Box sx={{ mb: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={showPreview}
+                      onChange={(e) => handlePreviewToggle(e.target.checked)}
                     />
-                  )}
-                </Box>
+                  }
+                  label={t('preview.label')}
+                />
+              </Box>
 
-                {selectedRule ? (
-                  <>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-                      {selectedRule.name}
+              {showPreview ? (
+                <>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">
+                      {t('preview.title')}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                      {previewItems.length > 0 ? t('preview.count', { count: previewItems.length }) : t('preview.no_items')}
-                    </Typography>
-
-                    {previewItems.length > 0 ? (
-                      <Box sx={{ maxHeight: '500px', overflow: 'auto' }}>
-                        {previewItems.map((item, index) => (
-                          <Box key={index} sx={{ mb: 2, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 'bold',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                mb: 1
-                              }}
-                              title={item.title}
-                            >
-                              {item.title}
-                            </Typography>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                {t('preview.table.subtitle_group')}: {item.subtitle_group === "未知字幕组" ? t('status.unknown_group') : item.subtitle_group}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {t('preview.table.size')}: {item.size}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {t('preview.table.task_status')}: {item.task_exists ? t('status.exists') : t('status.new_task')}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {t('preview.table.publish_time')}: {item.published && item.published !== "未知时间" ?
-                                  formatDate(item.published) :
-                                  (item.published === "未知时间" ? t('status.unknown_time') : item.published)
-                                }
-                              </Typography>
-                            </Box>
-                          </Box>
-                        ))}
-                      </Box>
-                    ) : (
-                      <Box sx={{ textAlign: 'center', py: 4 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {t('preview.no_items')}
-                        </Typography>
-                      </Box>
+                    {selectedRule && (
+                      <Chip
+                        size="small"
+                        color="primary"
+                        label={t('preview.filtered')}
+                        sx={{ fontSize: '0.7rem', ml: 1 }}
+                      />
                     )}
-                  </>
-                ) : (
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {t('preview.select_rule')}
-                    </Typography>
                   </Box>
-                )}
-              </Paper>
-            </Grid>
-          )}
-        </Grid>
+
+                  {selectedRule ? (
+                    <>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                        {selectedRule.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                        {previewItems.length > 0 ? t('preview.count', { count: previewItems.length }) : t('preview.no_items')}
+                      </Typography>
+
+                      {previewItems.length > 0 ? (
+                        <Box sx={{ maxHeight: '450px', overflow: 'auto' }}>
+                          {previewItems.map((item, index) => (
+                            <Box key={index} sx={{ mb: 2, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 'bold',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  mb: 1
+                                }}
+                                title={item.title}
+                              >
+                                {item.title}
+                              </Typography>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                  {t('preview.table.subtitle_group')}: {item.subtitle_group === "未知字幕组" ? t('status.unknown_group') : item.subtitle_group}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {t('preview.table.size')}: {item.size}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {t('preview.table.task_status')}: {item.task_exists ? t('status.exists') : t('status.new_task')}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {t('preview.table.publish_time')}: {item.published && item.published !== "未知时间" ?
+                                    formatDate(item.published) :
+                                    (item.published === "未知时间" ? t('status.unknown_time') : item.published)
+                                  }
+                                </Typography>
+                              </Box>
+                            </Box>
+                          ))}
+                        </Box>
+                      ) : (
+                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {t('preview.no_items')}
+                          </Typography>
+                        </Box>
+                      )}
+                    </>
+                  ) : (
+                    <Box sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {t('preview.select_rule')}
+                      </Typography>
+                    </Box>
+                  )}
+                </>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('preview.enable_to_view')}
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          </Box>
+        </Box>
 
         <EditRule
           open={editRuleOpen}
