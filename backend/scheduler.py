@@ -204,6 +204,7 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
 
 def check_rss_feeds():
     """Main function to check all enabled RSS rules"""
+    import datetime
     db: Session = SessionLocal()
     try:
         aria2_config = crud.get_aria2_config(db)
@@ -316,6 +317,7 @@ def check_rss_feeds():
 
 def check_individual_rule(rule_id: int):
     """Check a specific rule manually"""
+    import datetime
     db: Session = SessionLocal()
     try:
         rule = crud.get_rule(db, rule_id)
