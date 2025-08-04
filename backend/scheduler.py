@@ -206,13 +206,11 @@ def check_rss_feeds():
     """Main function to check all enabled RSS rules"""
     db: Session = SessionLocal()
     try:
-        # Get Aria2 configuration
         aria2_config = crud.get_aria2_config(db)
         if not aria2_config:
             logger.warning("No Aria2 configuration found, skipping RSS check")
             return
         
-        # Get all enabled rules
         rules = crud.get_rules(db)
         enabled_rules = [rule for rule in rules if rule.enabled]
         
@@ -226,8 +224,13 @@ def check_rss_feeds():
             try:
                 logger.info(f"Checking RSS feed for rule: {rule.name}")
                 
-                # Parse RSS feed
-                feed = feedparser.parse(rule.rss_url)
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+                }
+                response = requests.get(rule.rss_url, headers=headers, timeout=30)
+                response.raise_for_status()
+                
+                feed = feedparser.parse(response.content)
                 
                 if feed.bozo:
                     logger.warning(f"RSS feed parsing warning for {rule.name}: {feed.bozo_exception}")
@@ -238,7 +241,6 @@ def check_rss_feeds():
                 
                 logger.info(f"Found {len(feed.entries)} entries in RSS feed for rule: {rule.name}")
                 
-                # Process entries (limit by max_tasks)
                 processed_count = 0
                 last_download_time = None
                 latest_entry_date = None
@@ -248,13 +250,10 @@ def check_rss_feeds():
                         logger.info(f"Reached max tasks limit ({rule.max_tasks}) for rule: {rule.name}")
                         break
                     
-                    # Check if entry matches filters
                     if not matches_filters(entry, rule):
                         continue
                     
-                    # Check if we should create download task automatically
                     if rule.auto_create_tasks:
-                        # Extract the correct torrent URL based on RSS source
                         torrent_url = get_torrent_url(entry, rule.rss_url)
                         
                         if torrent_url:
@@ -265,50 +264,19 @@ def check_rss_feeds():
                             success = send_to_aria2(aria2_config, torrent_url, title)
                             if success:
                                 processed_count += 1
-                                last_download_time = datetime.datetime.utcnow()  # Record when download was created
+                                last_download_time = datetime.datetime.utcnow()
                                 
-                                # Extract and parse the entry's published date to update the filter
                                 raw_published = entry.get('published', '')
-                                if not raw_published:
-                                    # Try to find date in other fields
-                                    for key, value in entry.items():
-                                        if isinstance(value, str) and ('2025' in value or '2024' in value) and 'T' in value:
-                                            raw_published = value
-                                            break
-                                        elif isinstance(value, dict):
-                                            for sub_key, sub_value in value.items():
-                                                if isinstance(sub_value, str) and ('2025' in sub_value or '2024' in sub_value):
-                                                    raw_published = sub_value
-                                                    break
-                                            if raw_published:
-                                                break
-                                
                                 if raw_published:
-                                    # Parse the date using the same logic as matches_filters
-                                    parsed_date = None
-                                    date_formats = [
-                                        '%a, %d %b %Y %H:%M:%S %z',      # RFC 2822 with timezone
-                                        '%a, %d %b %Y %H:%M:%S',         # RFC 2822 without timezone
-                                        '%Y-%m-%dT%H:%M:%S.%f',          # Mikan ISO format with microseconds
-                                        '%Y-%m-%dT%H:%M:%S',             # ISO format without microseconds
-                                        '%Y-%m-%d %H:%M:%S',             # Simple format
-                                        '%Y-%m-%dT%H:%M:%S%z',           # ISO with timezone
-                                        '%Y-%m-%dT%H:%M:%SZ'             # ISO UTC
-                                    ]
-                                    
-                                    for fmt in date_formats:
-                                        try:
-                                            parsed_date = datetime.datetime.strptime(raw_published, fmt)
-                                            if parsed_date.tzinfo is None:
-                                                parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
-                                            break
-                                        except ValueError:
-                                            continue
-                                    
-                                    if parsed_date:
-                                        # Keep track of the latest entry date
+                                    from main import format_published_date
+                                    formatted_date = format_published_date(raw_published)
+                                    try:
+                                        from datetime import datetime
+                                        parsed_date = datetime.fromisoformat(formatted_date.replace('Z', '+00:00'))
                                         if latest_entry_date is None or parsed_date > latest_entry_date:
                                             latest_entry_date = parsed_date
+                                    except (ValueError, TypeError):
+                                        pass
                                 
                                 logger.info(f"Successfully created download task for: {title}")
                             else:
@@ -318,21 +286,15 @@ def check_rss_feeds():
                     else:
                         logger.info(f"Auto-create disabled for rule {rule.name}, skipping: {entry.get('title', '')}")
                 
-                # Update rule timestamps if we actually created download tasks
                 if last_download_time:
                     rule.last_update_time = last_download_time
                     
-                    # Update download_after filter to the latest entry's published date to prevent re-downloading
                     if latest_entry_date:
-                        # Make sure the date has timezone info for proper comparison later
                         if latest_entry_date.tzinfo is None:
                             latest_entry_date = latest_entry_date.replace(tzinfo=datetime.timezone.utc)
-                        
-                        # Add a small offset (1 second) to ensure we don't re-download the same episode
                         rule.download_after = latest_entry_date + datetime.timedelta(seconds=1)
                         logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (with 1 second offset)")
                     else:
-                        # Fallback: use current time if we couldn't parse entry dates
                         rule.download_after = last_download_time
                         logger.info(f"Updated download_after filter for rule {rule.name} to {last_download_time} (current time as fallback)")
                     

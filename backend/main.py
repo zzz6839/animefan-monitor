@@ -147,21 +147,22 @@ def toggle_rule(rule_id: int, db: Session = Depends(get_db)):
 def preview_rss(request: schemas.RSSPreviewRequest):
     logger.debug(f"Previewing RSS: {request.rss_url}")
     try:
-        feed = feedparser.parse(request.rss_url)
-        items = []
+        # Fetch the RSS feed content using requests to handle potential issues
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+        }
+        response = requests.get(request.rss_url, headers=headers, timeout=30)
+        response.raise_for_status()
         
-        for entry in feed.entries[:50]:  # Get more items for filtering
-            # Extract basic info
+        # Parse the content with feedparser
+        feed = feedparser.parse(response.content)
+        
+        items = []
+        for entry in feed.entries[:50]:
             title = entry.get('title', '')
             published = entry.get('published', '')
-            
-            # Extract subtitle group from title
             subtitle_group = extract_subtitle_group(title)
-            
-            # Extract file size from various sources
             size = extract_file_size(entry, request.rss_url)
-            
-            # Format published date to be more user-friendly
             formatted_date = format_published_date(published)
             
             item = schemas.RSSItem(
@@ -170,7 +171,7 @@ def preview_rss(request: schemas.RSSPreviewRequest):
                 published=formatted_date,
                 size=size,
                 subtitle_group=subtitle_group,
-                task_exists=False  # TODO: Check if task already exists in Aria2
+                task_exists=False
             )
             items.append(item)
             
@@ -186,39 +187,34 @@ def preview_rss(request: schemas.RSSPreviewRequest):
 def preview_rss_filtered(request: schemas.RSSPreviewFilteredRequest, db: Session = Depends(get_db)):
     logger.debug(f"Previewing RSS with rule filtering: {request.rss_url}, rule_id: {request.rule_id}")
     try:
-        # Get the rule for filtering
         rule = crud.get_rule(db, rule_id=request.rule_id)
         if not rule:
             raise HTTPException(status_code=404, detail="Rule not found")
         
-        feed = feedparser.parse(request.rss_url)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+        }
+        response = requests.get(request.rss_url, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        feed = feedparser.parse(response.content)
         items = []
         filtered_count = 0
         
-        # Import the filtering function from scheduler
         from scheduler import matches_filters
         
-        for entry in feed.entries[:100]:  # Get more items since we'll filter them
-            # Apply rule filters first
+        for entry in feed.entries[:100]:
             if not matches_filters(entry, rule):
                 filtered_count += 1
                 continue
             
-            # If we've reached the max_tasks limit, stop processing
             if len(items) >= rule.max_tasks:
                 break
                 
-            # Extract basic info
             title = entry.get('title', '')
             published = entry.get('published', '')
-            
-            # Extract subtitle group from title
             subtitle_group = extract_subtitle_group(title)
-            
-            # Extract file size from various sources
             size = extract_file_size(entry, request.rss_url)
-            
-            # Format published date to be more user-friendly
             formatted_date = format_published_date(published)
             
             item = schemas.RSSItem(
@@ -227,7 +223,7 @@ def preview_rss_filtered(request: schemas.RSSPreviewFilteredRequest, db: Session
                 published=formatted_date,
                 size=size,
                 subtitle_group=subtitle_group,
-                task_exists=False  # TODO: Check if task already exists in Aria2
+                task_exists=False
             )
             items.append(item)
             
