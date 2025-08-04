@@ -241,17 +241,12 @@ def preview_rss_filtered(request: schemas.RSSPreviewFilteredRequest, db: Session
 def extract_subtitle_group(title: str) -> str:
     """Extract subtitle group from title"""
     try:
-        # Common patterns for subtitle groups
         import re
-        
-        # Pattern: [GroupName] or (GroupName) at the beginning
-        match = re.match(r'[\[\(]([^\]\)]+)[\]\)]', title)
+        # Pattern: [GroupName] or (GroupName) at the beginning, case-insensitive
+        match = re.match(r'[\(\[](.+?)[\)\]]', title, re.IGNORECASE)
         if match:
             return match.group(1)
-        
-        # If no pattern found, return default
         return "未知字幕组"
-        
     except Exception:
         return "未知字幕组"
 
@@ -260,144 +255,97 @@ def extract_file_size(entry, rss_url: str) -> str:
     try:
         import re
         
-        # Try different methods to extract size
-        size = "未知"
-        
-        # Method 1: Check enclosures (common in RSS feeds, especially Mikan)
+        # Method 1: Check enclosures (most reliable)
         if hasattr(entry, 'enclosures') and entry.enclosures:
             enclosure = entry.enclosures[0]
             if hasattr(enclosure, 'length') and enclosure.length:
                 try:
                     size_bytes = int(enclosure.length)
-                    if size_bytes > 1024 * 1024 * 1024:  # GB
-                        size = f"{size_bytes / (1024*1024*1024):.1f} GB"
-                    else:  # MB
-                        size = f"{size_bytes / (1024*1024):.1f} MB"
-                    return size
-                except:
+                    if size_bytes > 1024 * 1024 * 1024:
+                        return f"{size_bytes / (1024*1024*1024):.1f} GB"
+                    return f"{size_bytes / (1024*1024):.1f} MB"
+                except (ValueError, TypeError):
                     pass
-        
-        # Method 2: Mikan-specific size extraction from description
+
+        # Method 2: Check for a 'size' field in the entry
+        if hasattr(entry, 'size'):
+            return entry.size
+        if 'size' in entry:
+            return entry['size']
+
+        # Method 3: Nyaa-specific size field
+        if 'nyaa.si' in rss_url.lower():
+            if hasattr(entry, 'nyaa_size'):
+                return entry.nyaa_size
+            if 'nyaa_size' in entry:
+                return entry['nyaa_size']
+
+        # Method 4: Extract from description (Mikan format)
+        description = entry.get('description', '')
         if 'mikan' in rss_url.lower():
-            description = entry.get('description', '')
-            # Mikan format: [ANi] Title [313.9 MB]
             mikan_size_match = re.search(r'\[([0-9.]+\s*[KMGT]?B)\]', description)
             if mikan_size_match:
                 return mikan_size_match.group(1)
-        
-        # Method 3: Nyaa-specific size extraction
-        if 'nyaa' in rss_url.lower():
-            # Check for nyaa_size field
-            if hasattr(entry, 'nyaa_size'):
-                return entry.nyaa_size
-            elif 'nyaa_size' in entry:
-                return entry['nyaa_size']
-            
-            # Check for size in tags
-            if hasattr(entry, 'tags') and entry.tags:
-                for tag in entry.tags:
-                    if 'size' in tag.get('term', '').lower():
-                        return tag.get('label', 'Unknown')
-        
-        # Method 4: Extract from title (common pattern)
+
+        # Method 5: General extraction from title and description
         title = entry.get('title', '')
+        search_text = f"{title} {description}"
         size_patterns = [
-            r'(\d+\.?\d*\s*GiB)',
-            r'(\d+\.?\d*\s*MiB)',
-            r'(\d+\.?\d*\s*GB)',
-            r'(\d+\.?\d*\s*MB)',
-            r'(\d+\.?\d*GiB)',
-            r'(\d+\.?\d*MiB)',
-            r'(\d+\.?\d*GB)',
-            r'(\d+\.?\d*MB)',
+            r'(\d+\.?\d*\s*(?:GiB|MiB|GB|MB|TiB|TB))'
         ]
-        
         for pattern in size_patterns:
-            match = re.search(pattern, title, re.IGNORECASE)
+            match = re.search(pattern, search_text, re.IGNORECASE)
             if match:
                 return match.group(1)
-        
-        # Method 5: Extract from description (general)
-        description = entry.get('description', '')
-        if description:
-            for pattern in size_patterns:
-                match = re.search(pattern, description, re.IGNORECASE)
-                if match:
-                    return match.group(1)
-        
-        # Method 6: Check all entry fields for size information
-        for key, value in entry.items():
-            if isinstance(value, str) and ('size' in key.lower() or 'length' in key.lower()):
-                # Try to extract size from the value
-                for pattern in size_patterns:
-                    match = re.search(pattern, value, re.IGNORECASE)
-                    if match:
-                        return match.group(1)
-        
-        return size
-        
+
+        return "未知"
     except Exception as e:
         logger.debug(f"Error extracting size: {e}")
         return "未知"
 
 def format_published_date(published: str) -> str:
-    """Format published date to be more user-friendly"""
+    """Format published date to be more user-friendly and robust"""
     try:
         if not published:
             return "未知时间"
         
+        # feedparser already tries to parse the date, let's use its result
+        # if it's available and is a struct_time
+        if hasattr(feedparser, '_parse_date') and isinstance(published, str):
+             # Manually parse if feedparser fails
+            try:
+                from datetime import datetime, timezone
+                parsed_tuple = feedparser._parse_date(published)
+                if parsed_tuple:
+                    dt = datetime(*parsed_tuple[:6])
+                    return dt.replace(tzinfo=timezone.utc).isoformat()
+            except Exception:
+                logger.debug(f"feedparser date parsing failed for: {published}")
+
+        # Fallback to manual parsing if feedparser's internal method isn't available or fails
         from datetime import datetime, timezone
-        import time
-        
-        # Try to parse the date with multiple formats
-        parsed_date = None
         date_formats = [
-            '%a, %d %b %Y %H:%M:%S %z',      # RFC 2822 with timezone
-            '%a, %d %b %Y %H:%M:%S',         # RFC 2822 without timezone
-            '%Y-%m-%dT%H:%M:%S.%f',          # Mikan ISO format with microseconds
-            '%Y-%m-%dT%H:%M:%S',             # ISO format without microseconds
-            '%Y-%m-%d %H:%M:%S',             # Simple format
-            '%Y-%m-%dT%H:%M:%S%z',           # ISO with timezone
-            '%Y-%m-%dT%H:%M:%SZ'             # ISO UTC
+            '%a, %d %b %Y %H:%M:%S %z',
+            '%a, %d %b %Y %H:%M:%S',
+      '%Y-%m-%dT%H:%M:%S.%f%z',
+            '%Y-%m-%dT%H:%M:%S.%f',
+            '%Y-%m-%dT%H:%M:%S%z',
+            '%Y-%m-%dT%H:%M:%SZ',
+            '%Y-%m-%d %H:%M:%S',
         ]
         
         for fmt in date_formats:
             try:
-                parsed_date = datetime.strptime(published, fmt)
-                if parsed_date.tzinfo is None:
-                    parsed_date = parsed_date.replace(tzinfo=timezone.utc)
-                break
+                dt = datetime.strptime(published, fmt)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.isoformat()
             except ValueError:
                 continue
         
-        if not parsed_date:
-            # If all parsing fails, return original for better frontend filtering
-            logger.debug(f"Could not parse date, returning original: {published}")
-            return published
-        
-        # For better frontend filtering, return ISO format with timezone info
-        # This allows the frontend to do accurate date comparisons and timezone conversion
-        return parsed_date.isoformat()
-        
-        # Original relative time formatting (commented out for better filtering)
-        # # Calculate time difference
-        # now = datetime.now(timezone.utc)
-        # diff = now - parsed_date
-        # 
-        # if diff.days == 0:
-        #     if diff.seconds < 3600:  # Less than 1 hour
-        #         minutes = diff.seconds // 60
-        #         return f"{minutes}分钟前" if minutes > 0 else "刚刚"
-        #     else:  # Less than 1 day
-        #         hours = diff.seconds // 3600
-        #         return f"{hours}小时前"
-        # elif diff.days == 1:
-        #     return f"昨天 {parsed_date.strftime('%H:%M')}"
-        # elif diff.days < 7:
-        #     return f"{diff.days}天前"
-        # else:
-        #     return parsed_date.strftime('%m-%d %H:%M')
-            
+        logger.debug(f"Could not parse date with any format, returning original: {published}")
+        return published
+
     except Exception as e:
         logger.debug(f"Error formatting date: {e}")
         return published or "未知时间"
@@ -406,15 +354,11 @@ def extract_size_from_description(description: str) -> str:
     """Extract file size from description"""
     try:
         import re
-        
-        # Pattern: [123.4 MB] or (123.4 MB) or 123.4MB
         size_pattern = r'[\[\(]?(\d+\.?\d*\s*[KMGT]?B)[\]\)]?'
         match = re.search(size_pattern, description, re.IGNORECASE)
         if match:
             return match.group(1)
-        
         return "Unknown"
-        
     except Exception:
         return "Unknown"
 

@@ -14,3 +14,5 @@ dist/
 # Docker
 backend_data/
 error.log
+
+.claude

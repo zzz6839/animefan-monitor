@@ -120,28 +120,26 @@ def send_to_aria2(aria2_config, download_url: str, filename: str = None) -> bool
 def get_torrent_url(entry: Dict[str, Any], rss_url: str) -> str:
     """Extract the correct torrent URL based on RSS source"""
     try:
-        # Handle Mikan RSS format
-        if 'mikan.tangbai.cc' in rss_url:
-            # For Mikan, the torrent URL is in enclosure
-            if hasattr(entry, 'enclosures') and entry.enclosures:
+        # Prioritize enclosure links as they are often the direct download link
+        if hasattr(entry, 'enclosures') and entry.enclosures:
+            for enc in entry.enclosures:
+                if enc.get('href') and 'torrent' in enc.get('type', '').lower():
+                    return enc.href
+            # Fallback to the first enclosure if no torrent type is specified
+            if entry.enclosures:
                 return entry.enclosures[0].href
-            # Fallback: check if there's a direct torrent link
-            link = entry.get('link', '')
-            if '.torrent' in link:
-                return link
-                
-        # Handle Nyaa RSS format  
-        elif 'nyaa.si' in rss_url:
-            # For Nyaa, the link IS the torrent URL
-            return entry.get('link', '')
-        
-        # Generic fallback: use the link if it looks like a torrent
+
+        # Fallback to the main link if it contains .torrent
         link = entry.get('link', '')
-        if '.torrent' in link or 'torrent' in link.lower():
+        if '.torrent' in link:
             return link
-            
-        return link  # Return the link anyway, let Aria2 handle it
-        
+
+        # For Nyaa, the link is usually the torrent link
+        if 'nyaa.si' in rss_url.lower():
+            return entry.get('link', '')
+
+        # Return the main link as a last resort
+        return entry.get('link', '')
     except Exception as e:
         logger.error(f"Error extracting torrent URL: {e}")
         return entry.get('link', '')
@@ -153,171 +151,48 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
         
         # Check size filter
         if rule.max_size_mb:
-            # Try to extract size from multiple sources
-            size_mb = 0
-            
-            # Method 1: Check enclosures (common in RSS feeds, especially Mikan)
-            if hasattr(entry, 'enclosures') and entry.enclosures:
-                enclosure = entry.enclosures[0]
-                if hasattr(enclosure, 'length') and enclosure.length:
-                    try:
-                        size_bytes = int(enclosure.length)
-                        size_mb = size_bytes / (1024 * 1024)  # Convert to MB
-                    except:
-                        pass
-            
-            # Method 2: Check if entry has size field
-            if size_mb == 0:
-                if hasattr(entry, 'nyaa_size'):
-                    size_str = entry.nyaa_size
-                elif 'nyaa_size' in entry:
-                    size_str = entry['nyaa_size']
-                else:
-                    size_str = entry.get('size', '')
-                
-                # Method 3: Extract from title or description
-                if not size_str:
-                    import re
-                    # Look for size patterns in title and description
-                    description = entry.get('description', '')
-                    search_text = f"{title} {description}"
+            from main import extract_file_size
+            size_str = extract_file_size(entry, rule.rss_url)
+            try:
+                import re
+                size_match = re.search(r'(\d+\.?\d*)\s*(GB|MB|GiB|MiB|TB|TiB)', size_str, re.IGNORECASE)
+                if size_match:
+                    size_value = float(size_match.group(1))
+                    unit = size_match.group(2).upper()
+                    size_mb = 0
+                    if unit in ['GB', 'GIB']:
+                        size_mb = size_value * 1024
+                    elif unit in ['TB', 'TIB']:
+                        size_mb = size_value * 1024 * 1024
+                    else:  # MB, MiB
+                        size_mb = size_value
                     
-                    size_patterns = [
-                        r'(\d+\.?\d*)\s*GiB',
-                        r'(\d+\.?\d*)\s*MiB', 
-                        r'(\d+\.?\d*)\s*GB',
-                        r'(\d+\.?\d*)\s*MB',
-                        r'(\d+\.?\d*)\s*TiB',
-                        r'(\d+\.?\d*)\s*TB',
-                        r'(\d+\.?\d*)GiB',
-                        r'(\d+\.?\d*)MiB',
-                        r'(\d+\.?\d*)GB',
-                        r'(\d+\.?\d*)MB'
-                    ]
-                    
-                    for pattern in size_patterns:
-                        match = re.search(pattern, search_text, re.IGNORECASE)
-                        if match:
-                            size_value = float(match.group(1))
-                            unit = match.group(0)[len(match.group(1)):].strip().upper()
-                            if unit in ['GB', 'GIB']:
-                                size_mb = size_value * 1024
-                            elif unit in ['TB', 'TIB']:
-                                size_mb = size_value * 1024 * 1024
-                            else:  # MB, MiB
-                                size_mb = size_value
-                            break
-                else:
-                    # Parse size string (e.g., "386.2 MiB" -> 386.2)
-                    try:
-                        import re
-                        size_match = re.search(r'(\d+\.?\d*)\s*(GB|MB|GiB|MiB|TB|TiB)', size_str, re.IGNORECASE)
-                        if size_match:
-                            size_value = float(size_match.group(1))
-                            unit = size_match.group(2).upper()
-                            if unit in ['GB', 'GIB']:
-                                size_mb = size_value * 1024
-                            elif unit in ['TB', 'TIB']:
-                                size_mb = size_value * 1024 * 1024
-                            else:  # MB, MiB
-                                size_mb = size_value
-                    except (ValueError, TypeError):
-                        logger.debug(f"Could not parse size string: {size_str}")
-            
-            if size_mb > 0 and size_mb > rule.max_size_mb:
-                logger.debug(f"Entry {title} exceeds size limit: {size_mb}MB > {rule.max_size_mb}MB")
-                return False
-        
+                    if size_mb > rule.max_size_mb:
+                        logger.debug(f"Entry {title} exceeds size limit: {size_mb:.1f}MB > {rule.max_size_mb}MB")
+                        return False
+            except (ValueError, TypeError):
+                logger.debug(f"Could not parse size string for filtering: {size_str}")
+
         # Check time filter
         if rule.download_after:
+            from main import format_published_date
+            formatted_date = format_published_date(entry.get('published', ''))
             try:
-                # Extract and format the published date using the same logic as the preview endpoint
-                raw_published = entry.get('published', '')
-                
-                # If no standard published field, try to extract from Mikan's torrent namespace
-                if not raw_published:
-                    # Try to find Mikan's nested torrent pubDate
-                    # Check all entry fields for date information
-                    for key, value in entry.items():
-                        if isinstance(value, str) and ('2025' in value or '2024' in value) and 'T' in value:
-                            raw_published = value
-                            logger.debug(f"Found date in {key}: {raw_published}")
-                            break
-                        elif isinstance(value, dict):
-                            for sub_key, sub_value in value.items():
-                                if isinstance(sub_value, str) and ('2025' in sub_value or '2024' in sub_value):
-                                    raw_published = sub_value
-                                    logger.debug(f"Found date in nested {key}.{sub_key}: {raw_published}")
-                                    break
-                            if raw_published:
-                                break
-                
-                if raw_published:
-                    # Use the same date parsing logic as the main.py format_published_date function
-                    parsed_date = None
-                    date_formats = [
-                        '%a, %d %b %Y %H:%M:%S %z',      # RFC 2822 with timezone
-                        '%a, %d %b %Y %H:%M:%S',         # RFC 2822 without timezone
-                        '%Y-%m-%dT%H:%M:%S.%f',          # Mikan ISO format with microseconds
-                        '%Y-%m-%dT%H:%M:%S',             # ISO format without microseconds
-                        '%Y-%m-%d %H:%M:%S',             # Simple format
-                        '%Y-%m-%dT%H:%M:%S%z',           # ISO with timezone
-                        '%Y-%m-%dT%H:%M:%SZ'             # ISO UTC
-                    ]
-                    
-                    for fmt in date_formats:
-                        try:
-                            parsed_date = datetime.datetime.strptime(raw_published, fmt)
-                            if parsed_date.tzinfo is None:
-                                parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
-                            break
-                        except ValueError:
-                            continue
-                    
-                    if parsed_date:
-                        # Convert rule.download_after to datetime if it's a string
-                        if isinstance(rule.download_after, str):
-                            filter_date = datetime.datetime.fromisoformat(rule.download_after.replace('Z', '+00:00'))
-                        else:
-                            filter_date = rule.download_after
-                        
-                        # Make both dates timezone-aware or naive for comparison
-                        if parsed_date.tzinfo is None and filter_date.tzinfo is not None:
-                            parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
-                        elif parsed_date.tzinfo is not None and filter_date.tzinfo is None:
-                            filter_date = filter_date.replace(tzinfo=datetime.timezone.utc)
-                        
-                        # Apply the filter: exclude items older than or equal to the specified date
-                        # Use <= to be more strict and prevent re-downloading the same episode
-                        if parsed_date <= filter_date:
-                            logger.debug(f"Entry {title} is too old: {parsed_date} <= {filter_date}")
-                            return False
-                        else:
-                            logger.debug(f"Entry {title} passes date filter: {parsed_date} > {filter_date}")
-                    else:
-                        logger.debug(f"Could not parse date for entry: {title} - {raw_published}")
-                        # If we can't parse the date, include the item (fail-safe)
-                else:
-                    logger.debug(f"No published date found for entry: {title}")
-                    # If no date found, include the item (fail-safe)
-                    
-            except Exception as e:
-                logger.debug(f"Error parsing date for entry {title}: {e}")
-                # If error occurs, include the item (fail-safe)
-        
-        # Check subtitle group filter (if not "全部")
-        if rule.subtitle_group != "<全部>":
-            # Extract subtitle group from title using the same logic as main.py
-            import re
-            # Pattern: [GroupName] or (GroupName) at the beginning
-            match = re.match(r'[\[\(]([^\]\)]+)[\]\)]', title)
-            entry_subtitle_group = match.group(1) if match else "未知字幕组"
-            
-            logger.debug(f"Checking subtitle group filter - Rule: '{rule.subtitle_group}', Entry: '{entry_subtitle_group}', Title: '{title}'")
-            
-            # Compare subtitle groups (case-insensitive)
+                from datetime import datetime
+                entry_date = datetime.fromisoformat(formatted_date.replace('Z', '+00:00'))
+                filter_date = rule.download_after.replace(tzinfo=datetime.timezone.utc)
+                if entry_date <= filter_date:
+                    logger.debug(f"Entry {title} is too old: {entry_date} <= {filter_date}")
+                    return False
+            except (ValueError, TypeError):
+                logger.debug(f"Could not parse date for filtering: {formatted_date}")
+
+        # Check subtitle group filter
+        if rule.subtitle_group and rule.subtitle_group != "<全部>":
+            from main import extract_subtitle_group
+            entry_subtitle_group = extract_subtitle_group(title)
             if rule.subtitle_group.lower() != entry_subtitle_group.lower():
-                logger.debug(f"Entry {title} doesn't match subtitle group filter: expected '{rule.subtitle_group}', got '{entry_subtitle_group}'")
+                logger.debug(f"Entry {title} doesn't match subtitle group: expected '{rule.subtitle_group}', got '{entry_subtitle_group}'")
                 return False
         
         logger.debug(f"Entry {title} passed all filters")
