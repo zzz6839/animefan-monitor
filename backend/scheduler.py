@@ -178,9 +178,9 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
             from main import format_published_date
             formatted_date = format_published_date(entry.get('published', ''))
             try:
-                from datetime import datetime
+                from datetime import datetime, timezone
                 entry_date = datetime.fromisoformat(formatted_date.replace('Z', '+00:00'))
-                filter_date = rule.download_after.replace(tzinfo=datetime.timezone.utc)
+                filter_date = rule.download_after.replace(tzinfo=timezone.utc)
                 if entry_date <= filter_date:
                     logger.debug(f"Entry {title} is too old: {entry_date} <= {filter_date}")
                     return False
