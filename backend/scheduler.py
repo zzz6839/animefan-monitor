@@ -4,7 +4,7 @@ import feedparser
 import logging
 import requests
 import json
-import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 
 import crud
@@ -37,7 +37,7 @@ def send_to_aria2(aria2_config, download_url: str, filename: str = None) -> bool
                 payload = {
                     "jsonrpc": "2.0",
                     "method": "aria2.addTorrent",
-                    "id": f"torrent_{int(datetime.datetime.now().timestamp())}",
+                    "id": f"torrent_{int(datetime.now().timestamp())}",
                     "params": []
                 }
                 
@@ -69,7 +69,7 @@ def send_to_aria2(aria2_config, download_url: str, filename: str = None) -> bool
             payload = {
                 "jsonrpc": "2.0",
                 "method": "aria2.addUri",
-                "id": f"download_{int(datetime.datetime.now().timestamp())}",
+                "id": f"download_{int(datetime.now().timestamp())}",
                 "params": []
             }
             
@@ -178,7 +178,6 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
             from main import format_published_date
             formatted_date = format_published_date(entry.get('published', ''))
             try:
-                from datetime import datetime, timezone
                 entry_date = datetime.fromisoformat(formatted_date.replace('Z', '+00:00'))
                 filter_date = rule.download_after.replace(tzinfo=timezone.utc)
                 if entry_date <= filter_date:
@@ -204,7 +203,6 @@ def matches_filters(entry: Dict[str, Any], rule) -> bool:
 
 def check_rss_feeds():
     """Main function to check all enabled RSS rules"""
-    import datetime
     db: Session = SessionLocal()
     try:
         aria2_config = crud.get_aria2_config(db)
@@ -265,14 +263,13 @@ def check_rss_feeds():
                             success = send_to_aria2(aria2_config, torrent_url, title)
                             if success:
                                 processed_count += 1
-                                last_download_time = datetime.datetime.utcnow()
+                                last_download_time = datetime.utcnow()
                                 
                                 raw_published = entry.get('published', '')
                                 if raw_published:
                                     from main import format_published_date
                                     formatted_date = format_published_date(raw_published)
                                     try:
-                                        from datetime import datetime
                                         parsed_date = datetime.fromisoformat(formatted_date.replace('Z', '+00:00'))
                                         if latest_entry_date is None or parsed_date > latest_entry_date:
                                             latest_entry_date = parsed_date
@@ -292,8 +289,8 @@ def check_rss_feeds():
                     
                     if latest_entry_date:
                         if latest_entry_date.tzinfo is None:
-                            latest_entry_date = latest_entry_date.replace(tzinfo=datetime.timezone.utc)
-                        rule.download_after = latest_entry_date + datetime.timedelta(seconds=1)
+                            latest_entry_date = latest_entry_date.replace(tzinfo=timezone.utc)
+                        rule.download_after = latest_entry_date + timedelta(seconds=1)
                         logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (with 1 second offset)")
                     else:
                         rule.download_after = last_download_time
@@ -317,7 +314,6 @@ def check_rss_feeds():
 
 def check_individual_rule(rule_id: int):
     """Check a specific rule manually"""
-    import datetime
     db: Session = SessionLocal()
     try:
         rule = crud.get_rule(db, rule_id)
@@ -372,7 +368,7 @@ def check_individual_rule(rule_id: int):
                 success = send_to_aria2(aria2_config, torrent_url, title)
                 if success:
                     processed_count += 1
-                    last_download_time = datetime.datetime.utcnow()  # Record when download was created
+                    last_download_time = datetime.utcnow()
                     
                     # Extract and parse the entry's published date to update the filter
                     raw_published = entry.get('published', '')
@@ -405,9 +401,9 @@ def check_individual_rule(rule_id: int):
                         
                         for fmt in date_formats:
                             try:
-                                parsed_date = datetime.datetime.strptime(raw_published, fmt)
+                                parsed_date = datetime.strptime(raw_published, fmt)
                                 if parsed_date.tzinfo is None:
-                                    parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
+                                    parsed_date = parsed_date.replace(tzinfo=timezone.utc)
                                 break
                             except ValueError:
                                 continue
@@ -431,10 +427,10 @@ def check_individual_rule(rule_id: int):
             if latest_entry_date:
                 # Make sure the date has timezone info for proper comparison later
                 if latest_entry_date.tzinfo is None:
-                    latest_entry_date = latest_entry_date.replace(tzinfo=datetime.timezone.utc)
+                    latest_entry_date = latest_entry_date.replace(tzinfo=timezone.utc)
                 
                 # Add a small offset (1 second) to ensure we don't re-download the same episode
-                rule.download_after = latest_entry_date + datetime.timedelta(seconds=1)
+                rule.download_after = latest_entry_date + timedelta(seconds=1)
                 logger.info(f"Updated download_after filter for rule {rule.name} to {latest_entry_date} (with 1 second offset)")
             else:
                 # Fallback: use current time if we couldn't parse entry dates
