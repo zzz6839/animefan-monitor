@@ -323,10 +323,11 @@ def format_published_date(published: str) -> str:
         date_formats = [
             '%a, %d %b %Y %H:%M:%S %z',
             '%a, %d %b %Y %H:%M:%S',
-      '%Y-%m-%dT%H:%M:%S.%f%z',
+            '%Y-%m-%dT%H:%M:%S.%f%z',
             '%Y-%m-%dT%H:%M:%S.%f',
             '%Y-%m-%dT%H:%M:%S%z',
             '%Y-%m-%dT%H:%M:%SZ',
+            '%Y-%m-%dT%H:%M:%S',  # ISO 8601 without timezone (Mikan format)
             '%Y-%m-%d %H:%M:%S',
         ]
         

@@ -6,3 +6,4 @@ error.log
 **/node_modules
 **/__pycache__
 .claude
+AGENTS.md

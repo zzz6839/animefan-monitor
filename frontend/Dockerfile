@@ -4,16 +4,15 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Install dependencies with legacy peer deps to handle any remaining conflicts
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps && npm cache clean --force
 
 COPY . .
 
-# Build the application for production
+RUN chmod +x node_modules/.bin/* 2>/dev/null || true
+
 RUN npm run build
 
 EXPOSE 53000
 
-# Use a simple HTTP server to serve the built files with proper CORS headers
 RUN npm install -g serve
 CMD ["serve", "-s", "dist", "-l", "53000", "--cors"]
